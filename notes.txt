@@ -1,0 +1,106 @@
+Using boto3 to interact with AWS services. 
+
+Put the cors for the lambda functions as the sites url and not allow anyone to touch the lambda. 
+
+OAC and signedurls can't be set at the same time
+
+APIGatway should specify at the exact path source_arn 
+
+HMAC or Cryptography modules doesn't work with cloudfront for signing urls
+only RSA works 
+
+When JavaScript running on your website (e.g., from index.js) tries to make the same request, the browser does enforce CORS, and the API must allow the origin of your website to access it.
+
+Your website is hosted at https://mywebsite.com.
+Your API is hosted at https://api.example.com.
+JavaScript tries to fetch data from the API, but the API doesn't explicitly allow https://mywebsite.com in its CORS configuration. The browser blocks the request.
+
+Direct access to the API URL in the browser bypasses CORS, so it doesn't indicate whether JavaScript will encounter a CORS issue.
+JavaScript requests enforce CORS. Check the browser console and network tab to identify CORS issues.
+
+Expected Behavior
+Preflight OPTIONS Requests:
+
+When the browser sends a preflight request to check if the API allows the request, it will invoke the OPTIONS method.
+API Gateway will:
+Use the MOCK integration to immediately return a 200 OK response.
+Include CORS headers (Access-Control-Allow-Origin, Access-Control-Allow-Methods, Access-Control-Allow-Headers) in the response.
+Example Response for OPTIONS Request:
+    
+    HTTP/1.1 200 OK
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: GET,OPTIONS
+Access-Control-Allow-Headers: Content-Type,Authorization
+
+Having response_parameters = { ... } with all true values is not enough by itself because true does not define actual values for the CORS headers. 
+It only enables the headers to be passed from the backend or integration response to the client. 
+If the backend or integration does not provide those headers, the response will not include the CORS headers, and the browser will block the request.
+
+The rest is in CORS setup in chatgpt
+
+CORS, IAM, source ARN in API Gateway made the biggest nightmare 
+
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"email": "sam.albershtein@gmail.com"}' \
+  <YOUR_API_ENDPOINT>
+
+.gitignore only applies to files and folders not yet tracked by Git. That's why untracking the folder with git rm --cached is necessary.
+Adding .terraform/ ensures all .terraform folders in your repository are ignored. If you only want to ignore a specific .terraform folder, use its relative path
+git rm -r --cached .terraform 
+Simply adding the folder to .gitignore does not remove it from the repository. You need to explicitly untrack it.
+
+public-read in git workflows made a lot of hassle:
+|
+v
+
+        '''
+        public-read will not work If the bucket has the Block Public ACLs option enabled, any attempt to apply a public ACL (like --acl public-read) will be rejected, even if you try to explicitly set it during upload.
+        This is a security feature to prevent accidental public exposure of sensitive data.
+
+        resource "aws_s3_bucket_public_access_block" "example" {
+          bucket                  = aws_s3_bucket.example.id
+          block_public_acls       = true
+          ignore_public_acls      = true
+          block_public_policy     = true
+          restrict_public_buckets = true
+        }
+
+          With block_public_acls = true, the bucket ignores or outright rejects any public ACLs, like public-read.
+
+          Your bucket is configured with BucketOwnerPreferred for object ownership. This ensures that the bucket owner takes ownership of any objects uploaded to the bucket, even if they come with a public ACL.
+          However, this does not override "Block Public ACLs" settings. The public ACL is still stripped or rejected.
+
+          If the aws_s3_bucket_public_access_block resource was not explicitly defined, AWS applies the following defaults for new S3 buckets:
+
+          *Block public access for ACLs and policies enabled by default:
+          This happens automatically unless you disable the "Block Public Access" feature at the bucket level or account level.
+          The AWS Management Console applies these settings when creating new buckets, even if the aws_s3_bucket_public_access_block resource is not explicitly set in Terraform.
+
+          You can omit the aws_s3_bucket_public_access_block resource if:
+
+          You do not need additional restrictions on public ACLs or policies, and
+          You are relying on the default AWS settings to block public access, or
+          You explicitly handle access via ACLs, ownership controls, and/or bucket policies.
+
+          Defining the public access block in Terraform makes your intention explicit. 
+          Anyone reading the Terraform code will immediately understand that public access is blocked. It avoids relying on implicit defaults, which may not always be clear to other developers or future maintainers.
+
+          You can safely omit aws_s3_bucket_public_access_block if:
+
+          The bucket is always private by design:
+
+          Your workflow ensures that no public ACLs or bucket policies are used.
+          All access is managed through explicit bucket policies and ACLs.
+          You're confident in AWS defaults:
+
+          If you trust that AWS will continue to apply its default behavior of blocking public access for new buckets.
+
+          The main point of explicitly setting aws_s3_bucket_public_access_block is to:
+
+          Make your intentions explicit and clear in code.
+          Avoid reliance on mutable AWS defaults.
+          Ensure consistency, auditing, and compliance.
+          If these points are not critical for your use case and you trust AWS defaults, you can omit the resource. However, for production setups or collaborative environments, explicit configuration is a best practice.
+
+        '''
