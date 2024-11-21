@@ -104,3 +104,5 @@ v
           If these points are not critical for your use case and you trust AWS defaults, you can omit the resource. However, for production setups or collaborative environments, explicit configuration is a best practice.
 
         '''
+
+        Add zip into terraform
