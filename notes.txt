@@ -106,3 +106,153 @@ v
         '''
 
         Add zip into terraform
+
+        Backend Ci/CD awaits for variables: 
+
+        We declared them in github secrets and need to assign TF_VAR_ in the back-end.cicd.yml 
+
+        Your variables.tf file should define the required variables cloudfront_private_key and cloudfront_key_pair_id in a structured way, ensuring Terraform knows their expected type and purpose.
+
+        We will not do this here but good practice is to create a separate S3 bucket for the terraform.tfstate 
+
+        and a dynamodb for the lock of the tfstate 
+
+terraform {
+  backend "s3" {
+    bucket         = "your-s3-bucket-name"
+    key            = "path/to/terraform.tfstate"
+    region         = "your-region"
+    dynamodb_table = "terraform-lock-table"
+  }
+}
+
+provider "aws" {
+  region = "your-region"
+}
+
+resource "aws_s3_bucket" "terraform_state" {
+  bucket = "your-s3-bucket-name"
+
+  versioning {
+    enabled = true
+  }
+
+  lifecycle {
+    prevent_destroy = true  # Prevent accidental deletion
+  }
+}
+
+resource "aws_dynamodb_table" "terraform_lock" {
+  name         = "terraform-lock-table"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
+
+  attribute {
+    name = "LockID"
+    type = "S"
+  }
+}
+
+Terraform knows to update the tfstate file in the S3 
+bucket because the backend configuration in main.tf tells it where the state file should be stored.
+
+When you configure the backend "s3" in your main.tf and run terraform init, 
+Terraform connects to the specified S3 bucket and DynamoDB table (if used).
+
+Terraform stores and retrieves the terraform.tfstate file from the key path in the specified S3 bucket.
+
+All changes to infrastructure (terraform apply) will update this remote state file.
+
+If a DynamoDB table is configured for locking (dynamodb_table = "terraform-lock-table"), 
+Terraform locks the state file during operations to prevent concurrent modifications.
+
+How Other Users or Systems Know to Communicate with the State File
+Other users or CI/CD systems need the same backend configuration to access the remote state. Here's how to set it up:
+
+1. Ensure the Backend Configuration is Shared
+The backend "s3" block in main.tf must be shared across all users or 
+systems working with the same Terraform configuration. Example:
+
+Users and CI/CD systems must have AWS credentials to access the S3 bucket and DynamoDB table.
+
+IAM Roles:
+
+For systems running in AWS (e.g., EC2, Lambda), 
+use an IAM role with the necessary permissions attached.
+
+For S3:
+
+json
+Copy code
+{
+  "Effect": "Allow",
+  "Action": [
+    "s3:GetObject",
+    "s3:PutObject",
+    "s3:ListBucket",
+    "s3:DeleteObject"
+  ],
+  "Resource": [
+    "arn:aws:s3:::your-s3-bucket-name",
+    "arn:aws:s3:::your-s3-bucket-name/*"
+  ]
+}
+
+For DynamoDB (if using locking):
+
+json
+Copy code
+{
+  "Effect": "Allow",
+  "Action": [
+    "dynamodb:PutItem",
+    "dynamodb:GetItem",
+    "dynamodb:DeleteItem",
+    "dynamodb:DescribeTable"
+  ],
+  "Resource": "arn:aws:dynamodb:your-region:your-account-id:table/terraform-lock-table"
+}
+
+Run terraform init:
+
+When another user or system runs terraform init, 
+Terraform downloads the current remote state from the S3 bucket. You’ll see output like
+
+After a successful operation (terraform apply), check the S3 bucket to verify the terraform.tfstate file is updated.
+
+If DynamoDB locking is enabled, check the DynamoDB table for a lock entry during terraform plan or terraform apply.
+
+How the dynamodb locks the object in the bucket?
+
+DynamoDB does not directly lock objects in the S3 bucket, but it works with Terraform to implement 
+a state locking mechanism to prevent simultaneous operations on the same Terraform state file.
+
+DynamoDB does not directly lock or interact with the S3 bucket or its objects.
+Instead:
+Terraform writes to the S3 bucket for state file management (e.g., storing terraform.tfstate).
+Terraform uses DynamoDB to coordinate access to the state file, ensuring that only one process modifies the state at a time.
+
+If locking is not used (e.g., you don’t configure a DynamoDB table):
+
+Multiple users or processes can modify the state file simultaneously, leading to:
+State Corruption: Conflicting updates can result in an inconsistent or invalid state.
+Infrastructure Drift: Terraform might apply incorrect changes due to outdated or incomplete state information.
+
+Terraform Plan/Apply Starts:
+
+Terraform writes a lock record to DynamoDB.
+Other Users/Processes Wait:
+
+If another plan or apply is attempted, Terraform checks the DynamoDB table for an existing lock:
+If a lock exists, the new process waits or fails, depending on the configuration.
+Terraform Plan/Apply Completes:
+
+Terraform deletes the lock record from DynamoDB.
+
+
+resource "aws_route53_record" "example" is bad because we have are domain in cloudflare and not in route53 
+
+
+
+terraform console
+aws_acm_certificate.cert_for_cloudflare_dns.domain_validation_options

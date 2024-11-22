@@ -1,8 +1,3 @@
-# Provider Configuration
-provider "aws" {
-  region = var.aws_region
-}
-
 # AWS Account Information
 data "aws_caller_identity" "current" {}
 
@@ -391,8 +386,20 @@ ordered_cache_behavior {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    cloudfront_default_certificate = false
+    acm_certificate_arn            = aws_acm_certificate.cert_for_cloudflare_dns.arn
+    ssl_support_method              = "sni-only"
+    minimum_protocol_version        = "TLSv1.2_2021"
   }
+
+  aliases = [
+    "www.samuelalber.com",
+    "samuelalber.com"
+  ]
+  /*
+  Aliases attribute in the aws_cloudfront_distribution resource is mandatory if you want CloudFront to respond to custom domain names such as www.samuelalber.com and samuelalber.com.
+  Without specifying the aliases, CloudFront will not recognize requests made to your custom domains and will only respond to requests made directly to the CloudFront domain (e.g., d1234567890.cloudfront.net).
+   */
 
   depends_on = [aws_cloudfront_origin_access_control.oac]
 }
@@ -693,3 +700,10 @@ resource "aws_api_gateway_method_response" "send_cv_cors_response" {
 }
 */
 # ------------------------- End of main.tf ------------------------- #
+
+
+
+
+
+
+
