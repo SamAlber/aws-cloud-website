@@ -665,10 +665,10 @@ resource "aws_api_gateway_method" "send_cv_method" {
   authorization = "NONE"
 }
 
-resource "aws_api_gateway_integration" "send_cv_integration" {
+resource "aws_api_gateway_integration" "send_cv_post_integration" {
   rest_api_id             = aws_api_gateway_rest_api.viewer_count_api.id
   resource_id             = aws_api_gateway_resource.send_cv_resource.id
-  http_method             = aws_api_gateway_method.send_cv_method.http_method
+  http_method             = aws_api_gateway_method.send_cv_method.http_method 
   type                    = "AWS_PROXY"
   integration_http_method = "POST"
   uri                     = aws_lambda_function.ses_lambda.invoke_arn
@@ -680,7 +680,7 @@ resource "aws_lambda_permission" "api_gateway_send_cv_permission" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.ses_lambda.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.viewer_count_api.execution_arn}/*/POST/send-cv"
+  source_arn    = "${aws_api_gateway_rest_api.viewer_count_api.execution_arn}/*/*/send-cv"
 
   depends_on = [
     aws_api_gateway_rest_api.viewer_count_api,
@@ -688,14 +688,13 @@ resource "aws_lambda_permission" "api_gateway_send_cv_permission" {
   ]
 }
 
-# API Deployment (remove 'stage_name' attribute) # SUUUUUUUUPER IMPORTANT TO ADD ALL DEPENDS ON INTEGRATIONS!!!!!!!!!
+# API Deployment (remove 'stage_name' attribute) # SUUUUUUUUPER IMPORTANT TO ADD ALL DEPENDS ON ALL METHOD INTEGRATIONS !!!!!!!!!
 resource "aws_api_gateway_deployment" "api_deployment" {
   depends_on = [
     aws_api_gateway_integration.lambda_integration,
-    aws_api_gateway_integration.send_cv_integration,
-    aws_api_gateway_method.viewer_count_options,
-    aws_api_gateway_method.send_cv_options,
-    aws_api_gateway_integration.crypto_api_integration 
+    aws_api_gateway_integration.send_cv_post_integration,
+    aws_api_gateway_integration.crypto_api_integration,
+    aws_api_gateway_integration.send_cv_options_integration
   ]
   rest_api_id = aws_api_gateway_rest_api.viewer_count_api.id
 }
@@ -724,15 +723,23 @@ resource "aws_api_gateway_method_settings" "prod" {
   }
 }
 
-// ViewerCount gate CORS
 
+// ViewerCount gate CORS (MAYBE WE WILL NEED IT FOR FUTURE, EVEN WITH AWS PROXY!)
+/*
 resource "aws_api_gateway_method" "viewer_count_options" {
   rest_api_id   = aws_api_gateway_rest_api.viewer_count_api.id
   resource_id   = aws_api_gateway_resource.viewer_count_resource.id
   http_method   = "OPTIONS"
   authorization = "NONE"
 }
+*/
+/*
+NOT NEEDED WITH AWS PROXY EXPLAINED BELOW (RECEIVE CV BUTTON MESS)
+|
+v
+*/
 
+/*
 resource "aws_api_gateway_integration" "viewer_count_cors" {
   rest_api_id = aws_api_gateway_rest_api.viewer_count_api.id
   resource_id = aws_api_gateway_resource.viewer_count_resource.id
@@ -748,6 +755,7 @@ EOF
     // Otherwise we would need to write : "application/json" = "{\"statusCode\": 200}"
   }
 }
+*/
 
 /* Not supported for AWS_Proxy 
 
@@ -783,7 +791,9 @@ resource "aws_api_gateway_method_response" "viewer_count_cors_response" {
 }
 */
 
-// Send_CV gate CORS
+ # NOT NEEDED IF I HAVE OPTIONS HANDELED IN LAMBDA (SEEMS LIKE ACCORDING TO ADVANCED GPT WE STILL NEED IT BECAUSE WE STILL NEED TO OPEN A PATH FOR OPTIONS!!!!!! (EVEN THOUGH WERE SENDING THEM MANUALLY))
+ # WE ALSO NEED TO INTEGRATE EACH METHOD WE DEFINE WITH THE API GATWAY IT'S NOT ENOUGH TO DECLARE IT LIKE WE'RE DOING HERE! 
+ # METHOD RESPONSE AND INTEGRATION RESPONSE OBSOLETE WITH API GATEWAY BUT NOT DECLARING THE METHOD AND INTEGRATING IT! 
 
 resource "aws_api_gateway_method" "send_cv_options" {
   rest_api_id   = aws_api_gateway_rest_api.viewer_count_api.id
@@ -792,6 +802,33 @@ resource "aws_api_gateway_method" "send_cv_options" {
   authorization = "NONE"
 }
 
+# Integration for the POST method (but referencing OPTIONS) # WE NEED IT AGAIN EVEN THOUGH WE DECLARED ONE FOR POST ALREADY! 
+resource "aws_api_gateway_integration" "send_cv_options_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.viewer_count_api.id
+  resource_id             = aws_api_gateway_resource.send_cv_resource.id
+  http_method             = aws_api_gateway_method.send_cv_options.http_method 
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = aws_lambda_function.ses_lambda.invoke_arn
+}
+
+/*
+Why AWS_PROXY Needs Lambda to Handle CORS
+With AWS_PROXY, API Gateway directly forwards all requests to the Lambda function without applying transformation, including OPTIONS preflight requests. Thus:
+
+CORS headers for OPTIONS must be returned by the Lambda function.
+API Gateway does not process the response_parameters for CORS like it does with a non-PROXY integration.
+*/
+
+/*
+Keep the OPTIONS method defined, but let it pass through the Lambda function. 
+Do not define a MOCK integration for the OPTIONS method.
+|
+v
+*/
+#|#X 
+#v
+/*
 resource "aws_api_gateway_integration" "send_cv_cors" {
   rest_api_id = aws_api_gateway_rest_api.viewer_count_api.id
   resource_id = aws_api_gateway_resource.send_cv_resource.id
@@ -806,6 +843,8 @@ resource "aws_api_gateway_integration" "send_cv_cors" {
 EOF
   }
 }
+*/
+
 /*Doesn't support AWS_PROXY
 
 resource "aws_api_gateway_integration_response" "send_cv_integration_response" {

@@ -603,4 +603,14 @@ By using OAC and SigV4, you can maintain a secure and controlled integration bet
 CORS problem when pressing the button receive my cv : The 500 Internal Server Error for the OPTIONS request still indicates that the API Gateway is not properly handling CORS preflight 
 requests when using the AWS_PROXY integration. The issue is that the Lambda function is expected to respond to the OPTIONS request explicitly with the correct CORS headers.
 
-Here’s how to fix this once an
+Here’s how to fix this once: Add an OPTIONS preflight in LAMBDA (IT;s AWSPROXY SO WE NEED TO DO IT MANUALLY LIKE WITH GET AND POST )
+
+The CORS error you're encountering stems from the API Gateway not handling the preflight OPTIONS request properly. When your browser sends a POST request with custom headers like "Content-Type: application/json", it first sends an 
+OPTIONS preflight request to verify if the server permits such requests from the origin. Since the API Gateway isn't configured to handle OPTIONS requests for the /send-cv resource, it results in a CORS error.
+
+
+
+
+
+When using AWS_PROXY integration and your Lambda function is configured to handle CORS 
+(including handling OPTIONS requests and returning the appropriate CORS headers), you do not need to set up MOCK integrations for the OPTIONS methods. The MOCK integrations become unnecessary in this scenario.

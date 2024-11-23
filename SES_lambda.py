@@ -55,6 +55,22 @@ def lambda_handler(event, context):
     """
     Handle the Lambda invocation for sending the CV link.
     """
+
+    # Log the incoming event for debugging
+    logger.info(json.dumps(event))
+
+    # Handle CORS preflight (OPTIONS request) # important for the receive CV button 
+    if event.get('httpMethod') == 'OPTIONS':
+        return {
+            "statusCode": 200,
+            "headers": {
+                "Access-Control-Allow-Origin": "*",  # Replace "*" with your domain if needed
+                "Access-Control-Allow-Methods": "POST,OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type,Authorization",
+            },
+            "body": json.dumps({"message": "CORS preflight request success"})
+        }
+    
     # Extract the email address from the event
     try:
         recipient_email = json.loads(event['body'])['email']
