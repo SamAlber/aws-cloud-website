@@ -80,7 +80,7 @@ resource "aws_s3_bucket_website_configuration" "website_configuration" {
 }
 
 # SUPER IMPORTANT, ALOOWS TRAFFIC TO COME FROM CLOUDFRONT, CHANING DOMAINS
-resource "aws_s3_bucket_cors_configuration" "cors_configuration" {
+resource "aws_s3_bucket_cors_configuration" "website_s3_cors_configuration" {
   bucket = aws_s3_bucket.website_bucket.id
 
   cors_rule {
@@ -142,7 +142,7 @@ Separate permissions for iamadmin and ensure iamadmin has direct upload rights w
 
 # ------------------------- S3 CV Bucket for AWS SES ------------------------- #
 
-# CV S3 Bucket
+# CV S3 Bucket  -> The bucket is private by default. 
 resource "aws_s3_bucket" "cv_bucket" {
   bucket = "cv-${local.bucket_gen}"
 
@@ -167,14 +167,14 @@ resource "aws_s3_bucket_policy" "cv_bucket_policy" {
     Version = "2012-10-17",
     Statement = [
       {
-        Sid    = "AllowCloudFrontAccessWithSignedURLs",
-        Effect = "Allow",
+        Sid       = "AllowCloudFrontAccess",
+        Effect    = "Allow",
         Principal = {
           Service = "cloudfront.amazonaws.com"
         },
-        Action   = "s3:GetObject",
-        Resource = "arn:aws:s3:::${aws_s3_bucket.cv_bucket.id}/*",
-        Condition = {
+        Action    = "s3:GetObject",
+        Resource  = "arn:aws:s3:::${aws_s3_bucket.cv_bucket.id}/*"
+        Condition = { # Optional but nice to have (can open the cv even without it) but it's not best practive because all distributions will be able to access with the signed key. 
           StringEquals = {
             "AWS:SourceArn" = aws_cloudfront_distribution.cdn.arn
           }
@@ -186,6 +186,87 @@ resource "aws_s3_bucket_policy" "cv_bucket_policy" {
   depends_on = [aws_cloudfront_distribution.cdn]
 }
 
+/*
+If removing the Condition block from the S3 bucket policy allows your setup to continue working, 
+it indicates that your bucket policy is already permissive enough to accept requests from CloudFront without further validation of the AWS:SourceArn condition. 
+
+Without the Condition block:
+
+The S3 bucket allows all requests from the cloudfront.amazonaws.com principal, regardless of which CloudFront distribution they originate from.
+The bucket policy still restricts access to CloudFront as a service, but it doesn't verify that the requests specifically come from your CloudFront distribution ARN.
+
+Why Does It Work?
+CloudFront-Origin-Signed Requests Are Still Valid:
+
+The OAC ensures that all requests from CloudFront to the S3 bucket are signed and authenticated using AWS SigV4.
+These signed requests satisfy the bucket policy's requirement for the cloudfront.amazonaws.com principal to perform s3:GetObject.
+No Strict Validation of AWS:SourceArn:
+
+Without the Condition block, the policy doesn't check if the requests are coming from your specific CloudFront distribution. It implicitly trusts all CloudFront distributions.
+Minimal Policy Requirement:
+
+The absence of the Condition makes the policy less restrictive, but CloudFront's signed requests still ensure that only CloudFront can access the S3 bucket.
+
+Potential Risks of Removing Condition
+Overly Broad Access:
+
+Any CloudFront distribution (not just yours) could access your S3 bucket if they have the appropriate Signed URLs or keys.
+This is not an immediate concern in most cases since CloudFront-S3 integrations are still authenticated via OAC and Signed URLs.
+Violation of Principle of Least Privilege:
+
+It's a best practice to restrict access as much as possible. By removing the Condition, you're allowing a broader range of CloudFront distributions to potentially access your bucket.
+
+Should You Keep It?
+Keep the Condition if:
+
+You want to adhere to AWS security best practices and follow the Principle of Least Privilege.
+You want to ensure that your S3 bucket is accessible only by your specific CloudFront distribution.
+You can remove the Condition if:
+
+You prioritize simplicity over strict security constraints.
+You understand the risks of broader access and are confident that Signed URLs and OAC provide sufficient security.
+
+
+
+
+*/
+
+/*
+^
+|
+Principal with Service = "cloudfront.amazonaws.com"
+
+Ensures that only CloudFront can access your S3 bucket.
+This is required for OAC or OAI.
+No Condition Block
+
+Flow:
+
+The Signed URL is validated by CloudFront, ensuring only authorized users can proceed.
+Once CloudFront approves the request, it forwards the request to the S3 bucket using the OAC credentials, which are validated against the bucket policy.
+
+Why This Configuration is Safe
+Your current bucket policy ensures:
+
+Only CloudFront Requests: The Principal is set to cloudfront.amazonaws.com, meaning the bucket only accepts requests from CloudFront.
+Specific Distribution Access: The Condition ensures only your specific CloudFront distribution (using its ARN) can access the bucket.
+Supports CloudFront Signed URLs: Since the request goes through CloudFront, the signed URL mechanism integrates seamlessly.
+
+*/
+
+/* NOT REALLY NEEEDED HERE BECAUSE 
+# SUPER IMPORTANT, ALOOWS TRAFFIC TO COME FROM CLOUDFRONT, CHANING DOMAINS
+resource "aws_s3_bucket_cors_configuration" "cv_s3_cors_configuration" {
+  bucket = aws_s3_bucket.cv_bucket.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET"]
+    allowed_origins = ["*"]
+    expose_headers  = []
+  }
+}
+*/
 # ------------------------- Verify SES Email Identity ------------------------- #
 
 resource "aws_ses_email_identity" "verified_sender" {
@@ -329,13 +410,76 @@ resource "aws_cloudfront_distribution" "cdn" {
   origin {
     domain_name              = aws_s3_bucket.website_bucket.bucket_regional_domain_name
     origin_id                = "S3-${aws_s3_bucket.website_bucket.id}"
-    origin_access_control_id = aws_cloudfront_origin_access_control.oac.id
+    origin_access_control_id = aws_cloudfront_origin_access_control.oac.id 
   }
 
   origin {
     domain_name = aws_s3_bucket.cv_bucket.bucket_regional_domain_name
     origin_id   = "S3-${aws_s3_bucket.cv_bucket.id}"
+    origin_access_control_id = aws_cloudfront_origin_access_control.oac.id # Without this even with the generated signature we won't be able to access (Access denied) - explanation below. 
   }
+
+/*
+What is origin_access_control_id?
+This parameter links your CloudFront distribution to an Origin Access Control (OAC). OAC is a mechanism that:
+
+Allows CloudFront to securely access your S3 bucket.
+Prevents direct public access to the S3 bucket by requiring all access to go through CloudFront.
+Signs requests from CloudFront to S3 using AWS SigV4 (signature version 4), authenticating CloudFront as the source of the request.
+When the origin_access_control_id is added, the connection between CloudFront and the S3 bucket uses these credentials, ensuring the S3 bucket trusts requests coming from CloudFront.
+
+Why Access Denied Without origin_access_control_id?
+No Trust Between S3 and CloudFront:
+
+Without origin_access_control_id, the S3 bucket does not recognize CloudFront as a trusted entity.
+Even if you allow cloudfront.amazonaws.com in the bucket policy, the requests to S3 do not carry sufficient authentication details unless they are signed with OAC.
+Request Source Misalignment:
+
+S3 requires requests to come from an authenticated and authorized source (like OAC). Without it, S3 cannot verify that the request truly originates from your CloudFront distribution.
+Signed URL Alone is Not Enough:
+
+The CloudFront Signed URL only authenticates the user to CloudFront.
+When CloudFront forwards the request to S3, the bucket must independently validate the request. This validation requires OAC or a similar mechanism like S3 bucket policies specifically allowing CloudFront.
+
+Why It Works with OAC
+When origin_access_control_id is added:
+
+CloudFront Signs Requests to S3:
+
+CloudFront uses the OAC credentials to sign requests sent to the S3 bucket.
+This signature (AWS SigV4) contains the necessary authorization details, including the origin (CloudFront distribution ARN).
+S3 Recognizes and Trusts the Request:
+
+Your S3 bucket policy now works as expected because it validates the AWS:SourceArn condition against the CloudFront distribution ARN.
+S3 trusts the authenticated requests coming through CloudFront, ensuring secure access.
+Seamless Integration:
+
+The Signed URL ensures users are authorized to access CloudFront.
+The OAC ensures CloudFront is authorized to access S3, completing the chain of trust.
+
+----
+
+Benefits of Using OAC
+Enhanced Security:
+
+Ensures no direct access to the S3 bucket, even with valid Signed URLs.
+Prevents unauthorized requests to the bucket by enforcing trust at every step.
+Simplified Bucket Policy:
+
+You only need to allow access for cloudfront.amazonaws.com with the specific AWS:SourceArn, avoiding overly permissive policies.
+Best Practice Compliance:
+
+Aligns with AWS recommendations for securing S3 buckets behind CloudFront.
+
+----
+
+In Summary
+The addition of origin_access_control_id ensures:
+
+Trust between CloudFront and S3.
+Proper authentication and authorization of requests from CloudFront to S3.
+A secure and functional integration between CloudFront Signed URLs and your S3 bucket.
+*/
 
   enabled             = true
   is_ipv6_enabled     = true

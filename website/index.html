@@ -66,7 +66,7 @@
             <!-- about wrapper -->
             <div class="about">
                 <div class="about-img-holder">
-                    <img src="assets/imgs/agile.png" class="about-img" alt="Download free bootstrap 4 landing page, free boootstrap 4 templates, Download free bootstrap 4.1 landing page, free boootstrap 4.1.1 templates, meyawo Landing page">
+                    <img src="assets/imgs/agile.png" class="about-img" alt="About Me">
                 </div>
                 <div class="about-caption">
                     <p class="section-subtitle">Who am I?</p>
@@ -80,11 +80,45 @@
                         <br><br> 
                         Feel free to explore my resume and projects on this site, and let’s connect!
                     </p>
-                    <button class="btn-rounded btn btn-outline-primary mt-4">Download CV</button>
+
+                    <!-- CV Request Section -->
+                    <h3 class="section-title mt-4">Get My CV</h3>
+                    <div class="cv-request-container">
+                        <button 
+                        class="btn-rounded btn btn-outline-primary" 
+                        onclick="sendEmailRequest()">
+                        Receive my CV
+                    </button>
+                        <input 
+                            type="email" 
+                            id="email-input" 
+                            placeholder="Enter your email" 
+                            class="form-control" 
+                            style="max-width: 300px;"
+                        >
+                    </div>
+                    <div id="email-status" style="margin-top: 20px; color: red;"></div>
                 </div>                
             </div><!-- end of about wrapper -->
         </div><!-- end of container -->
     </section> <!-- end of about section -->
+
+    <!-- Inline CSS for alignment -->
+    <style>
+        .cv-request-container {
+            display: flex;
+            justify-content: left;
+            align-items: center;
+            gap: 10px; /* Space between the email input and button */
+            margin-top: 20px;
+        }
+
+        .cv-request-container .form-control {
+            max-width: 300px; /* Keep the input field compact */
+        }
+    </style>
+
+
 
     <!-- Crypto Bar -->
     <section class="section pt-0" id="about">

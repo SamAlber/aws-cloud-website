@@ -459,3 +459,148 @@ resource "aws_api_gateway_deployment" "api_deployment" {
 ALSO THE CODE worked within lambda but not if we tested inapi gateway! NEEDED A CODE REPAIR TOO! 
 
 Request module was required for import requests in ctypto lambda
+
+Double Quotes: If you're embedding JSON inside a string, double quotes need escaping 
+because JSON strings are enclosed in double quotes.
+
+{
+  "body": "{\"email\": \"sam.albershtein@gmail.com\"}"
+}
+
+In SES Lambda and overall (we see it here because we're doing post)
+That's how API Gatway send stuff 
+
+When doing the test in API gatway we can type {"email": "sam.albershtein@gmail.com"} 
+but the api gateway transforms it into {\"email\": \"sam.albershtein@gmail.com\"} (embeds into a string)
+and send it in a body
+
+
+You're absolutely right to ask this! When using signed URLs for CloudFront, Origin Access Control (OAC) or the older Origin Access Identity (OAI) can still be used, but with specific considerations:
+
+Why OAC and Signed URLs Can Work Together
+OAC secures the connection between CloudFront and S3, ensuring that S3 objects are only accessible through CloudFront.
+Signed URLs secure access from the user to CloudFront, ensuring that only authorized users can access your content via CloudFront.
+These mechanisms address different parts of the access flow and can coexist.
+
+How to Configure Both Together
+1. Origin Access Control (OAC)
+When using OAC, you allow CloudFront to access the S3 bucket securely:
+
+Use aws_cloudfront_origin_access_control to configure OAC in Terraform.
+Update your S3 bucket policy to grant access to the OAC.
+Note: This ensures that S3 only allows requests originating from CloudFront.
+
+resource "aws_s3_bucket_policy" "cv_bucket_policy" {
+  bucket = aws_s3_bucket.cv_bucket.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Sid       = "AllowCloudFrontAccess",
+        Effect    = "Allow",
+        Principal = {
+          AWS = aws_cloudfront_origin_access_control.oac.arn
+        },
+        Action    = "s3:GetObject",
+        Resource  = "arn:aws:s3:::${aws_s3_bucket.cv_bucket.id}/*"
+      }
+    ]
+  })
+}
+
+
+2. Signed URLs
+Signed URLs add another layer of security for access from users to CloudFront:
+
+The trusted_signers block in CloudFront links your distribution to the CloudFront key-pair used to generate signed URLs.
+This ensures that only users with valid signed URLs can access the cv.pdf object.
+
+ordered_cache_behavior {
+  path_pattern           = "cv.pdf"
+  allowed_methods        = ["GET", "HEAD"]
+  target_origin_id       = "S3-${aws_s3_bucket.cv_bucket.id}"
+  viewer_protocol_policy = "redirect-to-https"
+
+  forwarded_values {
+    query_string = true
+    cookies {
+      forward = "none"
+    }
+  }
+
+  trusted_signers = ["self"]
+}
+
+Final Note: Signed URLs + OAC Compatibility
+Yes, you can use both OAC and signed URLs together, but:
+
+Ensure that the S3 bucket policy allows CloudFront access with OAC.
+Make sure the trusted_signers configuration is properly set in CloudFront.
+Verify that the signed URL uses the correct CloudFront key-pair and includes all required parameters (Policy, Signature, and Key-Pair-Id).
+
+1. Is CORS Mandatory for the S3 Bucket?
+CORS (Cross-Origin Resource Sharing) is not mandatory for this scenario unless your web application or Lambda function is directly accessing the S3 bucket through the browser or client-side JavaScript.
+
+In your case:
+
+CORS is not required because access to the S3 bucket happens via CloudFront. CloudFront handles requests from clients and proxies them to S3, so the browser never directly communicates with S3.
+CORS settings apply only to direct browser-to-S3 communication.
+If your signed URLs work and you don’t plan to allow direct access to the bucket, you can safely remove the CORS configuration.
+
+If you remove the CORS configuration, make sure there are no direct browser-to-S3 requests (which there shouldn't be if CloudFront is handling everything).
+
+
+
+====
+
+ADDITION TO WHAT WE DISCUSSED IN CLOUDFRONT ORIGIN OAC AND THE CV BUCKET (WE'VE CONFIGURED EVERYTHING BUT DIDN'T WANT OAC BECAUSE WE THOUGHT (SIGNED URL WILL NOT WORK WITH OAC BUT IN FACT THEY DEAL WITH DIFFERENT ENDS))
+A VERY VERY TOUGH CHAIN OF TRUST TO GET MY CV, ONLY WITH A SPECIAL SIGNED URL TO ACCESS CLOUDFRONT->CV BUCKET OBJECT AND OAC WHICH LET'S CLOUDFRONT ACCESS THE BUCKET ITSELF
+
+so origin_access_control_id = aws_cloudfront_origin_access_control.oac.id is a must when accessing buckets from cloudfront? 
+
+Yes, origin_access_control_id = aws_cloudfront_origin_access_control.oac.id is mandatory when accessing private S3 buckets via CloudFront using the Origin Access Control (OAC) mechanism. Here's why:
+
+Why Is origin_access_control_id Mandatory?
+Access Control via AWS SigV4:
+
+The origin_access_control_id links the CloudFront distribution to a specific OAC configuration.
+OAC ensures that all requests from CloudFront to S3 are signed with AWS Signature Version 4 (SigV4). This is how CloudFront authenticates itself when accessing private S3 objects.
+Replacing Legacy OAI (Origin Access Identity):
+
+OAC is the modern replacement for the older Origin Access Identity (OAI) mechanism.
+Without origin_access_control_id, CloudFront cannot apply SigV4 signing, and requests to S3 will be denied if the bucket is private.
+S3 Bucket Security:
+
+A private S3 bucket requires every request to be authenticated.
+origin_access_control_id ensures that CloudFront can act on behalf of your distribution to retrieve objects from the bucket securely.
+Integration with Bucket Policies:
+
+The Principal in the S3 bucket policy (e.g., cloudfront.amazonaws.com) and the Condition with AWS:SourceArn depend on CloudFront making authenticated requests.
+Without origin_access_control_id, CloudFront cannot make the necessary authenticated requests, resulting in an "Access Denied" error.
+What Happens Without origin_access_control_id?
+Requests Are Not Signed:
+
+CloudFront will not sign requests to S3 with SigV4.
+Since the S3 bucket policy allows only authenticated access, any unsigned requests will be denied.
+Access Denied:
+
+You will see errors like Access Denied when trying to retrieve objects via CloudFront because S3 rejects unauthenticated requests.
+When Is origin_access_control_id Not Needed?
+Public Buckets:
+
+If your S3 bucket is public and does not require authentication, you can use CloudFront without an OAC. However, this is not recommended for secure setups.
+Using S3 Signed URLs Instead of CloudFront:
+
+If you are generating S3 Signed URLs (not CloudFront Signed URLs), then CloudFront does not interact directly with S3, and origin_access_control_id is not needed.
+Best Practice
+For private buckets accessed via CloudFront:
+
+Use origin_access_control_id with an appropriate OAC configuration.
+Ensure your S3 bucket policy is configured to allow access only to authenticated requests from CloudFront.
+By using OAC and SigV4, you can maintain a secure and controlled integration between your CloudFront distribution and private S3 buckets.
+
+CORS problem when pressing the button receive my cv : The 500 Internal Server Error for the OPTIONS request still indicates that the API Gateway is not properly handling CORS preflight 
+requests when using the AWS_PROXY integration. The issue is that the Lambda function is expected to respond to the OPTIONS request explicitly with the correct CORS headers.
+
+Here’s how to fix this once an

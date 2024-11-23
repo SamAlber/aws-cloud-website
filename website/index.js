@@ -94,4 +94,61 @@ async function fetchCryptoPrices() {
 fetchCryptoPrices();
 
 
+// Sending email form 
+
+async function sendEmailRequest() {
+    const emailInput = document.getElementById("email-input");
+    const email = emailInput.value.trim(); // Get the email input and trim whitespace
+    const statusDiv = document.getElementById("email-status");
+
+    // Clear previous status messages
+    statusDiv.textContent = "";
+
+    // Validate email input
+    if (!validateEmail(email)) {
+        statusDiv.textContent = "Please enter a valid email address.";
+        statusDiv.style.color = "red";
+        return;
+    }
+
+    const apiEndpoint = "https://zyst4gczkf.execute-api.us-east-1.amazonaws.com/prod/send-cv"; // Your API Gateway endpoint
+
+    try {
+        // Show loading indicator
+        statusDiv.textContent = "Sending request...";
+        statusDiv.style.color = "blue";
+
+        // Make POST request to the API Gateway
+        const response = await fetch(apiEndpoint, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email }), // Pass email in the body
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            statusDiv.textContent = "CV link sent successfully! Check your email.";
+            statusDiv.style.color = "green";
+        } else {
+            // Show error message from backend
+            statusDiv.textContent = result.error || "Failed to send CV. Please try again.";
+            statusDiv.style.color = "red";
+        }
+    } catch (error) {
+        console.error("Error sending email:", error);
+        statusDiv.textContent = "An error occurred while sending the email. Please try again.";
+        statusDiv.style.color = "red";
+    }
+}
+
+// Email validation function
+function validateEmail(email) {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Simple email regex
+    return regex.test(email);
+}
+
+
 
