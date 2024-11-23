@@ -100,8 +100,8 @@ resource "aws_s3_bucket_policy" "website_bucket_policy" {
     Version = "2012-10-17",
     Statement = [
       {
-        Sid      = "AllowGetCloudFrontAccess",
-        Effect   = "Allow",
+        Sid    = "AllowGetCloudFrontAccess",
+        Effect = "Allow",
         Principal = {
           Service = "cloudfront.amazonaws.com"
         },
@@ -114,16 +114,16 @@ resource "aws_s3_bucket_policy" "website_bucket_policy" {
         }
       },
       {
-        Sid      = "AllowIAMAdminToPutObject",
-        Effect   = "Allow",
+        Sid    = "AllowIAMAdminToPutObject",
+        Effect = "Allow",
         Principal = {
           AWS = "arn:aws:iam::761018880324:user/iamadmin"
         },
         Action   = "s3:PutObject",
         Resource = "arn:aws:s3:::${aws_s3_bucket.website_bucket.id}/*",
-            // Condition = {
-            //"AWS:SourceArn" = aws_cloudfront_distribution.cdn.arn
-            /*
+        // Condition = {
+        //"AWS:SourceArn" = aws_cloudfront_distribution.cdn.arn
+        /*
             Your policy is almost correct, but there’s a small issue: AWS:SourceArn is not a valid condition key for s3:PutObject actions. 
             AWS:SourceArn is commonly used for services like Lambda or CloudFront to restrict access, but it does not apply when granting permissions for an IAM user (iamadmin) to upload objects.
             */
@@ -155,7 +155,7 @@ resource "aws_s3_bucket" "cv_bucket" {
 resource "aws_s3_object" "cv_file" {
   bucket       = aws_s3_bucket.cv_bucket.id
   key          = "cv.pdf"
-  source       = "CV.pdf"  # Ensure this file exists in your working directory
+  source       = "CV.pdf" # Ensure this file exists in your working directory
   content_type = "application/pdf"
 }
 
@@ -167,8 +167,8 @@ resource "aws_s3_bucket_policy" "cv_bucket_policy" {
     Version = "2012-10-17",
     Statement = [
       {
-        Sid      = "AllowCloudFrontAccessWithSignedURLs",
-        Effect   = "Allow",
+        Sid    = "AllowCloudFrontAccessWithSignedURLs",
+        Effect = "Allow",
         Principal = {
           Service = "cloudfront.amazonaws.com"
         },
@@ -202,11 +202,11 @@ resource "aws_iam_role" "lambda_role" {
     Version = "2012-10-17",
     Statement = [
       {
-        Effect    = "Allow",
+        Effect = "Allow",
         Principal = {
           Service = "lambda.amazonaws.com"
         },
-        Action    = "sts:AssumeRole"
+        Action = "sts:AssumeRole"
       }
     ]
   })
@@ -241,14 +241,15 @@ resource "aws_iam_policy" "ssm_parameter_access" {
     Version = "2012-10-17",
     Statement = [
       {
-        Effect: "Allow",
-        Action: [
+        Effect : "Allow",
+        Action : [
           "ssm:GetParameter",
           "ssm:GetParameters"
         ],
-        Resource: [
+        Resource : [
           "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/cloudfront/private_key",
-          "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/cloudfront/key_pair_id"
+          "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/cloudfront/key_pair_id",
+          "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/lambda/market_cap_api_token"
         ]
       }
     ]
@@ -258,12 +259,6 @@ resource "aws_iam_policy" "ssm_parameter_access" {
 resource "aws_iam_role_policy_attachment" "lambda_ssm_policy_attachment" {
   role       = aws_iam_role.lambda_role.name
   policy_arn = aws_iam_policy.ssm_parameter_access.arn
-}
-
-# Attach Basic Execution Role for Lambda
-resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
-  role       = aws_iam_role.lambda_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
 # ------------------------- SSM Parameters ------------------------- #
@@ -283,6 +278,8 @@ resource "aws_ssm_parameter" "cloudfront_key_pair_id" {
   type        = "SecureString"
   value       = var.cloudfront_key_pair_id
 }
+
+# The parameter for the BTC lambda is created in crypto.tf
 
 # ------------------------- Lambda Function for SES ------------------------- #
 
@@ -304,7 +301,6 @@ resource "aws_lambda_function" "ses_lambda" {
     aws_ses_email_identity.verified_sender,
     aws_iam_role_policy_attachment.lambda_ses_policy_attachment,
     aws_iam_role_policy_attachment.lambda_ssm_policy_attachment,
-    aws_iam_role_policy_attachment.lambda_basic_execution
   ]
 
   layers = [aws_lambda_layer_version.rsa_layer.arn]
@@ -312,10 +308,10 @@ resource "aws_lambda_function" "ses_lambda" {
 
 # Lambda Layer Resource
 resource "aws_lambda_layer_version" "rsa_layer" {
-  filename          = "lambda_layer.zip"
-  layer_name        = "rsa_dependency_layer"
-  compatible_runtimes = ["python3.9"]  # Adjust if you're using a different Python version
-  description       = "Lambda Layer containing the rsa library"
+  filename            = "lambda_layer.zip"
+  layer_name          = "rsa_dependency_layer"
+  compatible_runtimes = ["python3.9"] # Adjust if you're using a different Python version
+  description         = "Lambda Layer containing the rsa library"
 }
 
 
@@ -360,24 +356,24 @@ resource "aws_cloudfront_distribution" "cdn" {
     viewer_protocol_policy = "redirect-to-https"
   }
 
-ordered_cache_behavior {
-  path_pattern           = "cv.pdf"
-  allowed_methods        = ["GET", "HEAD"]
-  cached_methods         = ["GET", "HEAD"]
-  target_origin_id       = "S3-${aws_s3_bucket.cv_bucket.id}"
-  viewer_protocol_policy = "redirect-to-https"
+  ordered_cache_behavior {
+    path_pattern           = "cv.pdf"
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    target_origin_id       = "S3-${aws_s3_bucket.cv_bucket.id}"
+    viewer_protocol_policy = "redirect-to-https"
 
-  forwarded_values {
-    query_string = true  # Required for signed URLs
-    cookies {
-      forward = "none"
+    forwarded_values {
+      query_string = true # Required for signed URLs
+      cookies {
+        forward = "none"
+      }
     }
+    # Use CloudFront key-pair signing
+    trusted_signers = ["self"]
+    # The new error suggests that CloudFront is no longer looking for AWSAccessKeyId (indicating it's now properly configured for signed URLs) 
+    # Doesn't search for AWSAccessKeyId anymore.
   }
-  # Use CloudFront key-pair signing
-  trusted_signers = ["self"] 
-  # The new error suggests that CloudFront is no longer looking for AWSAccessKeyId (indicating it's now properly configured for signed URLs) 
-  # Doesn't search for AWSAccessKeyId anymore.
-}
 
   restrictions {
     geo_restriction {
@@ -388,8 +384,8 @@ ordered_cache_behavior {
   viewer_certificate {
     cloudfront_default_certificate = false
     acm_certificate_arn            = aws_acm_certificate.cert_for_cloudflare_dns.arn
-    ssl_support_method              = "sni-only"
-    minimum_protocol_version        = "TLSv1.2_2021"
+    ssl_support_method             = "sni-only"
+    minimum_protocol_version       = "TLSv1.2_2021"
   }
 
   aliases = [
@@ -431,8 +427,8 @@ resource "aws_iam_policy" "lambda_policy" {
     Version = "2012-10-17",
     Statement = [
       {
-        Effect   = "Allow",
-        Action   = [
+        Effect = "Allow",
+        Action = [
           "dynamodb:GetItem",
           "dynamodb:PutItem",
           "dynamodb:UpdateItem"
@@ -488,7 +484,7 @@ resource "aws_api_gateway_method" "viewer_count_get" {
   authorization = "NONE"
 }
 
-resource "aws_api_gateway_integration" "lambda_integration" {
+resource "aws_api_gateway_integration" "lambda_integration" { 
   rest_api_id             = aws_api_gateway_rest_api.viewer_count_api.id
   resource_id             = aws_api_gateway_resource.viewer_count_resource.id
   http_method             = aws_api_gateway_method.viewer_count_get.http_method
@@ -497,8 +493,8 @@ resource "aws_api_gateway_integration" "lambda_integration" {
   uri                     = aws_lambda_function.viewer_count_function.invoke_arn
 }
 
-# Lambda Permission for API Gateway
-resource "aws_lambda_permission" "lambda_permission" {
+# Lambda Permission for API Gateway to invoke viewer count lambda
+resource "aws_lambda_permission" "crypto_api_permission" {
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.viewer_count_function.function_name
@@ -548,13 +544,14 @@ resource "aws_lambda_permission" "api_gateway_send_cv_permission" {
   ]
 }
 
-# API Deployment (remove 'stage_name' attribute)
+# API Deployment (remove 'stage_name' attribute) # SUUUUUUUUPER IMPORTANT TO ADD ALL DEPENDS ON INTEGRATIONS!!!!!!!!!
 resource "aws_api_gateway_deployment" "api_deployment" {
   depends_on = [
     aws_api_gateway_integration.lambda_integration,
     aws_api_gateway_integration.send_cv_integration,
     aws_api_gateway_method.viewer_count_options,
     aws_api_gateway_method.send_cv_options,
+    aws_api_gateway_integration.crypto_api_integration 
   ]
   rest_api_id = aws_api_gateway_rest_api.viewer_count_api.id
 }
@@ -570,17 +567,17 @@ resource "aws_api_gateway_stage" "prod" {
 resource "aws_api_gateway_method_settings" "prod" {
   rest_api_id = aws_api_gateway_rest_api.viewer_count_api.id
   stage_name  = aws_api_gateway_stage.prod.stage_name
-  method_path = "*/*" 
+  method_path = "*/*"
   # */* applies the specified method_settings to all methods (*) on all paths (*).
   # First * - For example, it applies to paths like /send-cv, 
   # /viewer-count, or even /some/other/resource. 
 
   # Second * (Wildcard for HTTP Method): For example, it applies to HTTP methods like GET, POST, PUT, DELETE, etc. 
 
-   settings {
-      throttling_rate_limit = 10
-      throttling_burst_limit = 2
-   }
+  settings {
+    throttling_rate_limit  = 10
+    throttling_burst_limit = 2
+  }
 }
 
 // ViewerCount gate CORS
@@ -593,10 +590,10 @@ resource "aws_api_gateway_method" "viewer_count_options" {
 }
 
 resource "aws_api_gateway_integration" "viewer_count_cors" {
-  rest_api_id             = aws_api_gateway_rest_api.viewer_count_api.id
-  resource_id             = aws_api_gateway_resource.viewer_count_resource.id
-  http_method             = aws_api_gateway_method.viewer_count_options.http_method
-  type                    = "MOCK"
+  rest_api_id = aws_api_gateway_rest_api.viewer_count_api.id
+  resource_id = aws_api_gateway_resource.viewer_count_resource.id
+  http_method = aws_api_gateway_method.viewer_count_options.http_method
+  type        = "MOCK"
 
   request_templates = {
     "application/json" = <<EOF
@@ -604,7 +601,7 @@ resource "aws_api_gateway_integration" "viewer_count_cors" {
   "statusCode": 200 
 }
 EOF
-// Otherwise we would need to write : "application/json" = "{\"statusCode\": 200}"
+    // Otherwise we would need to write : "application/json" = "{\"statusCode\": 200}"
   }
 }
 
@@ -652,10 +649,10 @@ resource "aws_api_gateway_method" "send_cv_options" {
 }
 
 resource "aws_api_gateway_integration" "send_cv_cors" {
-  rest_api_id             = aws_api_gateway_rest_api.viewer_count_api.id
-  resource_id             = aws_api_gateway_resource.send_cv_resource.id
-  http_method             = aws_api_gateway_method.send_cv_options.http_method
-  type                    = "MOCK"
+  rest_api_id = aws_api_gateway_rest_api.viewer_count_api.id
+  resource_id = aws_api_gateway_resource.send_cv_resource.id
+  http_method = aws_api_gateway_method.send_cv_options.http_method
+  type        = "MOCK"
 
   request_templates = {
     "application/json" = <<EOF

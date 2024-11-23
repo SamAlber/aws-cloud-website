@@ -10,14 +10,14 @@ resource "aws_acm_certificate" "cert_for_cloudflare_dns" {
 resource "cloudflare_dns_record" "cdn_records" {
   for_each = {
     "root" = {
-      name  = "samuelalber.com"
+      name    = "samuelalber.com"
       content = aws_cloudfront_distribution.cdn.domain_name
-      type  = "CNAME"
+      type    = "CNAME"
     }
     "www" = {
-      name  = "www.samuelalber.com"
+      name    = "www.samuelalber.com"
       content = aws_cloudfront_distribution.cdn.domain_name
-      type  = "CNAME"
+      type    = "CNAME"
     }
   }
 

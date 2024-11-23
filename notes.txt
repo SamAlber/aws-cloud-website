@@ -256,3 +256,206 @@ resource "aws_route53_record" "example" is bad because we have are domain in clo
 
 terraform console
 aws_acm_certificate.cert_for_cloudflare_dns.domain_validation_options
+
+1. Resource-Based Policies (e.g., Bucket Policies)
+Standalone Policies: These policies are directly attached to a resource (e.g., an S3 bucket, an SNS topic, or an SQS queue). They define who (users, roles, accounts) can access that specific resource.
+Use Case:
+Cross-account access (e.g., another AWS account accessing your S3 bucket).
+Public access (e.g., making an S3 bucket publicly readable).
+Examples:
+S3 Bucket Policy
+SNS Topic Policy
+SQS Queue Policy
+
+Key Notes for Resource-Based Policies:
+Directly attached to a specific resource.
+No need for a role unless you’re combining it with another service.
+
+2. Identity-Based Policies
+These are attached to IAM entities (users, groups, or roles) to grant them permissions to access AWS resources.
+
+Use Case:
+Allow a user, group, or role to access resources like S3, EC2, DynamoDB, etc.
+Usually combined with an IAM Role when a service needs to assume permissions.
+Examples:
+Attached to a User:
+Grant a user access to an S3 bucket.
+Attached to a Group:
+Grant a group access to perform administrative tasks.
+Attached to a Role:
+Allow a Lambda function to read/write from DynamoDB.
+
+3. When Policies Need to Be Part of a Role
+When services (e.g., Lambda, EC2, ECS) need access to AWS resources, the policy must be attached to a role because these services assume roles to obtain permissions.
+
+Why?
+AWS services like Lambda and EC2 cannot directly use IAM policies. Instead, they assume an IAM role that has the required permissions.
+This provides temporary credentials to the service for secure operations.
+
+Type of Policy	               Attached To                                 	Use Case
+Resource-Based Policy	S3 Bucket, SNS, SQS, etc.	Directly grant access to specific resources (e.g., make a bucket public).
+
+Identity-Based Policy	IAM Users, Groups, or Roles	Grant permissions to identities to access various AWS services/resources.
+
+IAM Role with Policies	Services (e.g., Lambda, EC2)	Provide temporary credentials for AWS services to interact with resources.
+
+Resource-Based Policies: Standalone policies directly attached to resources.
+Identity-Based Policies: Require users, groups, or roles for attachment.
+IAM Roles: Required for AWS services to assume permissions using policies.
+
+what is  Action    = "sts:AssumeRole"  ?
+
+The sts:AssumeRole action is part of AWS Security Token Service (STS) and is used to allow a trusted entity 
+(e.g., a user, application, or service) to assume an IAM role. When an entity assumes a role, it temporarily gains the permissions defined by that role's attached policies.
+
+
+Key Concepts
+AWS Security Token Service (STS):
+
+AWS STS provides temporary security credentials for IAM roles. These credentials are used to access AWS resources.
+Assuming a Role:
+
+A user, service, or another AWS account can assume a role to temporarily acquire its permissions.
+The sts:AssumeRole action is required to allow an entity to assume the role.
+
+
+Use Case for sts:AssumeRole
+The sts:AssumeRole action is specified in the trust policy of an IAM role. It defines who can assume the role.
+
+Example: Allowing EC2 to Assume a Role
+You want an EC2 instance to access an S3 bucket. To do this, you:
+
+Create an IAM role with s3 permissions.
+Allow the EC2 service (ec2.amazonaws.com) to assume this role using sts:AssumeRole.
+Trust Policy Example: This policy allows the EC2 service to assume the role:
+
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+
+Structure of a Trust Policy
+A trust policy uses sts:AssumeRole to define:
+
+Effect: Allow or deny the assume role action.
+Principal: Who can assume the role (e.g., services like EC2 or specific AWS accounts).
+Action: The sts:AssumeRole action.
+
+How sts:AssumeRole Works
+Trust Policy:
+
+Defines who (a user, service, or account) is allowed to assume the role.
+AWS STS Call:
+
+The trusted entity (e.g., EC2) makes an AssumeRole API call.
+AWS STS generates temporary credentials for the role.
+Temporary Credentials:
+
+The temporary credentials include an access key, secret key, and session token.
+These credentials allow the entity to access resources based on the permissions attached to the role.
+
+Use Cases for sts:AssumeRole
+Cross-Account Access:
+
+Allow a user or role in Account B to access resources in Account A.
+AWS Service Access:
+
+Allow services like EC2, Lambda, or ECS tasks to assume roles for permissions.
+Federated Access:
+
+Allow external identity providers (e.g., Active Directory, Okta) to assume roles for accessing AWS resources.
+Temporary Access:
+
+Grant temporary access to a resource without needing to manage long-term credentials.
+
+
+How It Looks in Terraform
+In Terraform, the sts:AssumeRole action is typically used in the trust policy of a role.
+
+Example:
+Allow Lambda to assume a role:
+
+resource "aws_iam_role" "lambda_role" {
+  name = "lambda-access-s3-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = { Service = "lambda.amazonaws.com" }
+        Action    = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+Attach a policy to grant S3 access:
+
+resource "aws_iam_role_policy" "lambda_policy" {
+  name   = "lambda-s3-policy"
+  role   = aws_iam_role.lambda_role.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["s3:PutObject", "s3:GetObject"]
+        Resource = "arn:aws:s3:::my-bucket/*"
+      }
+    ]
+  })
+}
+
+sts:AssumeRole is an AWS STS action that allows a trusted entity (user, service, account) to temporarily assume an IAM role.
+It’s defined in the trust policy of an IAM role.
+Used for enabling cross-account access, AWS service permissions, and temporary credentials.
+
+When creating a bucket for Terraform state storage (.tfstate), it should be private for security reasons. Terraform state files can contain sensitive information such as:
+
+Access keys
+Resource configurations
+Secrets (e.g., database passwords, API keys)
+
+Why the Bucket Should Be Private
+Security: A public bucket exposes your infrastructure's sensitive data to anyone with access to the bucket URL.
+Controlled Access: Only authorized users or roles should have access to the bucket.
+No Need for CloudFront: CloudFront is not required for accessing the .tfstate bucket because:
+Terraform clients directly access the bucket.
+There’s no need for caching or CDN benefits for .tfstate files.
+
+
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET,OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization'
+            },
+
+            mandatory :P 
+
+
+
+# SUUUUUUUUPER IMPORTANT TO ADD ALL DEPENDS ON INTEGRATIONS!!!!!!!!! (WE HAD BIG PROBLEMS WITH THE API GATEWAY NOT BEING ABLE TO CONTACT THE CRYPTO LAMBDA)
+# API Deployment (remove 'stage_name' attribute)
+resource "aws_api_gateway_deployment" "api_deployment" {
+  depends_on = [
+    aws_api_gateway_integration.lambda_integration,
+    aws_api_gateway_integration.send_cv_integration,
+    aws_api_gateway_method.viewer_count_options,
+    aws_api_gateway_method.send_cv_options,
+    aws_api_gateway_integration.crypto_api_integration 
+  ]
+  rest_api_id = aws_api_gateway_rest_api.viewer_count_api.id
+}
+
+ALSO THE CODE worked within lambda but not if we tested inapi gateway! NEEDED A CODE REPAIR TOO! 
+
+Request module was required for import requests in ctypto lambda

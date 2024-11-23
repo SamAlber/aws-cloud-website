@@ -1,6 +1,6 @@
 # CREATED AFTER EVERYTHING WAS SET UP! 
 # BACKEND REQUIRES STATIC NAMES 
-terraform {  
+terraform {
   backend "s3" {
     bucket         = "terraform.tfstate-bra2hd"
     key            = "prod/terraform.tfstate"
@@ -19,7 +19,7 @@ resource "aws_s3_bucket" "tfstate" {
 
   tags = {
     Name = "Terraform State Bucket"
-    }     
+  }
 }
 
 resource "aws_s3_bucket_versioning" "tfstate_versioning" {
@@ -41,15 +41,15 @@ resource "aws_s3_bucket_policy" "tfstate_policy" {
     Version = "2012-10-17",
     Statement = [
       {
-        Effect    = "Allow",
+        Effect = "Allow",
         Principal = {
           AWS = [
-           #"arn:aws:iam::123456789012:role/TerraformRole", # not using it. 
+            #"arn:aws:iam::123456789012:role/TerraformRole", # not using it. 
             "arn:aws:iam::761018880324:user/iamadmin" # giving only myself access , can be given to a user or a role.  
             # You are correctly using a specific IAM user (arn:aws:iam::761018880324:user/iamadmin) to restrict access. This is valid and ensures only the specified user has access.
           ]
         },
-        Action   = [
+        Action = [
           "s3:GetObject",
           "s3:PutObject",
           "s3:ListBucket"
@@ -100,9 +100,9 @@ resource "aws_iam_policy" "tfstate_dynamodb_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect    = "Allow",
-        Action    = ["dynamodb:PutItem", "dynamodb:GetItem", "dynamodb:DeleteItem"],
-        Resource  = "arn:aws:dynamodb:us-east-1:761018880324:table/tfstate-locks"                               # !!!!!!!!! Specifies on what the policy is applied to 
+        Effect   = "Allow",
+        Action   = ["dynamodb:PutItem", "dynamodb:GetItem", "dynamodb:DeleteItem"],
+        Resource = "arn:aws:dynamodb:us-east-1:761018880324:table/tfstate-locks" # !!!!!!!!! Specifies on what the policy is applied to 
         /*
         If the iamadmin user is configured to assume the role, they will be able to:
 
@@ -129,11 +129,11 @@ resource "aws_iam_role" "tfstate_table_role" {
     Version = "2012-10-17",
     Statement = [
       {
-        Effect    = "Allow",
+        Effect = "Allow",
         Principal = {
           AWS = "arn:aws:iam::761018880324:user/iamadmin" # Replace with the entity ARN
         },
-        Action    = "sts:AssumeRole"
+        Action = "sts:AssumeRole"
       }
     ]
   })

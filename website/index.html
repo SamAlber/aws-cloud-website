@@ -29,7 +29,7 @@
                     <a class="link" href="#portfolio">Portfolio</a>
                 </li>
                 <li class="item">
-                    <a class="link" href="#How it works?">Architecture</a>
+                    <a class="link" href="#architecture">Architecture</a>
                 </li>
             </ul>
             <a href="javascript:void(0)" id="nav-toggle" class="hamburger hamburger--elastic">
@@ -56,8 +56,7 @@
             <a href="https://github.com/SamAlber" target="_blank">
                 <button class="btn btn-primary">Visit my git</button>
             </a>
-            
-        </div>              
+        </div>           
     </header><!-- end of page header -->
 
     <!-- about section -->
@@ -70,27 +69,83 @@
                     <img src="assets/imgs/agile.png" class="about-img" alt="Download free bootstrap 4 landing page, free boootstrap 4 templates, Download free bootstrap 4.1 landing page, free boootstrap 4.1.1 templates, meyawo Landing page">
                 </div>
                 <div class="about-caption">
-                    <p class="section-subtitle">Who Am I ?</p>
+                    <p class="section-subtitle">Who am I?</p>
                     <h2 class="section-title mb-3">About Me</h2>
                     <p>
                         Hi, I’m Samuel Albershtein, a Computer Science student exploring my path in DevOps, backend development, and cybersecurity. This site was created using AWS and other tools and technologies I’ve been learning, as part of a project to apply my skills in a practical way.
                         <br><br> 
                         I’m currently preparing for the Certified Kubernetes Administrator (CKA) exam while gaining hands-on experience with tools like Docker, CI/CD, Cloud, and Kubernetes. I enjoy tackling technical challenges and learning how to build efficient, scalable systems.
                         <br><br>
-                        Although I’m just starting my journey, I’m excited to develop my skills further, particularly in areas like cloud security, automation, and Kubernetes. Outside of tech, I enjoy cycling and learning new languages.
+                        Although I’m just starting my journey, I’m excited to develop my skills further, particularly in areas like cloud security, automation, and Kubernetes. <br><br>Outside of tech, I enjoy cycling and learning new languages.
                         <br><br> 
                         Feel free to explore my resume and projects on this site, and let’s connect!
                     </p>
                     <button class="btn-rounded btn btn-outline-primary mt-4">Download CV</button>
-                </div>              
+                </div>                
             </div><!-- end of about wrapper -->
         </div><!-- end of container -->
     </section> <!-- end of about section -->
 
-    <!-- service section -->
+    <!-- Crypto Bar -->
+    <section class="section pt-0" id="about">
+        <!-- Container -->
+        <div class="container text-center">
+            <h2 class="section-title mb-4">Beloved Coins of Mine</h2>
+            <!-- Crypto Bar -->
+            <div id="crypto-bar"></div>
+            <p class="header-subtitle">Powered by the CoinMarketCap API</p>
+        </div><!-- End of Container -->
+    </section> <!-- End of About Section -->
+    
+    <!-- The #crypto-bar div is the placeholder for the dynamically generated cryptocurrency items.
+This structure is correct and will work with the JavaScript code.
+
+The #crypto-bar styles define the layout and appearance of the cryptocurrency bar.
+.crypto-item styles ensure each cryptocurrency item is styled consistently.
+-->
+
+    <style>
+        #crypto-bar {
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            overflow-x: auto;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .crypto-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            width: 100px; /* Adjust width to fit more coins */
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            color: #333;
+        }
+        .crypto-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .crypto-price {
+            color: #28a745;
+        }
+        .crypto-item img {
+            margin-bottom: 5px;
+        }
+    </style>
+
+
+
+    <!-- certifications section -->
     <section class="section" id="service">
         <div class="container text-center">
-            <p class="section-subtitle">What I know ?</p>
+            <p class="section-subtitle">What I know?</p>
             <h6 class="section-title mb-6">Certifications</h6>
             <!-- row -->
             <div class="row">
@@ -99,7 +154,7 @@
                         <div class="body">
                             <img src="assets/imgs/Red_Hat_logo.png" alt="Download free bootstrap 4 landing page, free boootstrap 4 templates, Download free bootstrap 4.1 landing page, free boootstrap 4.1.1 templates, meyawo Landing page" class="icon">
                             <h6 class="title">RedHat Certified System Administrator</h6>
-                            <p class="subtitle">Provided me with valuable Linux skills</p>
+                            <p class="subtitle">Equipped me with essential Linux expertise</p>
                         </div>
                     </div>
                 </div>
@@ -108,7 +163,7 @@
                         <div class="body">
                             <img src="assets/imgs/AWS_SAA.png" alt="Download free bootstrap 4 landing page, free boootstrap 4 templates, Download free bootstrap 4.1 landing page, free boootstrap 4.1.1 templates, meyawo Landing page" class="icon">
                             <h6 class="title">AWS Solutions Architect Asscociate</h6>
-                            <p class="subtitle">An AWS certification testing my knowledge in AWS services and best practices</p>
+                            <p class="subtitle">Validated my proficiency in AWS services and industry best practices</p>
                         </div>
                     </div>
                 </div>
@@ -117,27 +172,27 @@
                         <div class="body">
                             <img src="assets/imgs/terraform.png" alt="Download free bootstrap 4 landing page, free boootstrap 4 templates, Download free bootstrap 4.1 landing page, free boootstrap 4.1.1 templates, meyawo Landing page" class="icon">
                             <h6 class="title">Hashicorp Terraform Associate</h6>
-                            <p class="subtitle">Terraform best practices and platform capabilities</p>
+                            <p class="subtitle">Demonstrated expertise in Terraform's best practices and platform functionalities</p>
                         </div>
                     </div>
                 </div>
             </div><!-- end of row -->
         </div>
-    </section><!-- end of service section -->
+    </section><!-- end of certifications section -->
 
     <!-- portfolio section -->
     <section class="section" id="portfolio">
         <div class="container text-center">
-            <p class="section-subtitle">What I Did ?</p>
+            <p class="section-subtitle">What I did?</p>
             <h6 class="section-title mb-6">Portfolio</h6>
             <!-- row -->
                 <div class="col-md-4">
                     <a href="https://github.com/SamAlber/aws-cloud-website" target="_blank" class="portfolio-card">
-                        <img class="portfolio-card-img" src="assets/imgs/architecture.jpeg" class="img-responsive rounded" alt="Download free bootstrap 4 landing page, free boootstrap 4 templates, Download free bootstrap 4.1 landing page, free boootstrap 4.1.1 templates, meyawo Landing page">
+                        <img class="portfolio-card-img" src="assets/imgs/architecture.png" class="img-responsive rounded" alt="Download free bootstrap 4 landing page, free boootstrap 4 templates, Download free bootstrap 4.1 landing page, free boootstrap 4.1.1 templates, meyawo Landing page">
                         <span class="portfolio-card-overlay">
                             <span class="portfolio-card-caption">
                                 <h4>Cloud Resume Challange</h5>
-                                <p class="font-weight-normal">Architecting a serverless website with AWS</p>
+                                <p class="font-weight-normal">Designing a serverless website architecture using AWS</p>
                             </span>                         
                         </span>                         
                     </a>
@@ -147,14 +202,29 @@
     </section> <!-- end of portfolio section -->
 
     <!-- Architecture section -->
-    <section class="section" id="How it works?">
+    <section class="section" id="architecture">
+        
         <div class="container text-center">
-            <p class="section-subtitle">How does this site work?</p>
+            <p class="section-subtitle">How it works?</p>
             <h6 class="section-title mb-6">Website Architecture</h6>
-            <img src="assets/imgs/architecture.jpeg" class="about-img" alt="Download free bootstrap 4 landing page, free boootstrap 4 templates, Download free bootstrap 4.1 landing page, free boootstrap 4.1.1 templates, meyawo Landing page">
-            <!-- row -->
+            <img src="assets/imgs/architecture.png" class="img-fluid" alt="Website Architecture"> 
+            
+            <!-- img-fluid - the img-fluid class from Bootstrap will ensure that the image stays within the boundaries of its container and the viewport.
+             The img-fluid class applies these CSS properties to the image:
+             .img-fluid {
+              max-width: 100%;
+              height: auto;
+            }
+
+            max-width: 100%;: Ensures the image never exceeds the width of its parent container, which prevents horizontal scrolling or overflowing outside the viewport.
+            height: auto;: Maintains the aspect ratio of the image when it is resized, avoiding distortion.
+
+            If the image is smaller than the container, it will display at its original size.
+            If the image is larger than the container or viewport, it will shrink proportionally to fit within the container.
+              -->
+
         </div> <!-- end of container -->
-    </section><!-- end of pricing section -->
+    </section><!-- end of architecture section -->
 
     <!-- footer -->
     <div class="container">
