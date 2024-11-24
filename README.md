@@ -1,6 +1,6 @@
 # AWS Resume Website
 
-![Architecture](https://github.com/SamAlber/aws-cloud-website/blob/0333a39a1cc42b3d5a38c1952200d7f882cad749/website/assets/imgs/architecture.png)
+![Architecture](https://github.com/SamAlber/aws-cloud-website/blob/main/website/assets/imgs/architecture.png)
 
 ## **Project Overview**
 
@@ -81,64 +81,97 @@ Check it out live at: [www.samuelalber.com](http://www.samuelalber.com)
 - **Programming Language**:
   - All backend code, including Lambda functions, was written in **Python**.
 
-#### **Cryptocurrency API Integration**:
+#### **Handling S3 Bucket Configurations**
 
-- **Lambda Function**:
-  - Developed a Lambda function in **Python** to fetch current cryptocurrency prices from an external API like CoinGecko or CryptoCompare.
-  - Implemented error handling to manage API rate limits and network issues.
+- **Public Access Settings**:
+  - Implemented strict S3 bucket policies to prevent public access:
+    - Used `aws_s3_bucket_public_access_block` to block all public ACLs and policies, ensuring that even if an ACL is misconfigured, public access is still blocked.
+    - Configured `aws_s3_bucket_ownership_controls` with `object_ownership = "BucketOwnerPreferred"` to ensure the bucket owner retains ownership of all objects, even if uploaded by other AWS accounts.
+  - Set the bucket ACL to `private` using `aws_s3_bucket_acl` to enforce default object permissions.
 
-- **API Gateway Configuration**:
-  - Set up REST endpoints that trigger the Lambda function.
-  - Enabled caching in API Gateway to optimize performance and reduce costs.
+- **CORS Configuration**:
+  - For the website bucket, set up CORS rules to allow GET requests from any origin:
+    - This is crucial for allowing CloudFront to fetch content from S3 and serve it to different domains.
+    - Configured using `aws_s3_bucket_cors_configuration`.
 
-- **Frontend Integration**:
-  - The frontend makes asynchronous calls to the API endpoint to display real-time cryptocurrency prices and logos.
+#### **IAM Roles and Policies**
 
-#### **CV Request Feature**:
+- **Resource-Based Policies vs. Identity-Based Policies**:
+  - Used resource-based policies (e.g., S3 bucket policies) to grant access to specific resources.
+  - Attached identity-based policies to IAM roles to grant permissions to AWS services like Lambda.
+  - Understood the importance of `sts:AssumeRole` in IAM roles, which allows AWS services to assume the role and gain necessary permissions.
 
-- **Lambda Function**:
-  - Validates user email addresses using regex patterns and AWS SES verification.
-  - Generates signed URLs using **CloudFrontSigner** along with the **RSA utility** in Python for secure, time-limited access to the CV stored in S3.
+- **Principal Types in Policies**:
+  - Differentiated between service principals (e.g., `"Service": "lambda.amazonaws.com"`) and AWS principals (e.g., `"AWS": "arn:aws:iam::account-id:user/username"`).
 
-- **AWS SES Setup**:
-  - Configured SES to send emails from a verified domain.
-  - Implemented email templates for consistent communication.
+#### **Lambda Functions and Layers**
 
-- **Security Measures**:
-  - Stored email templates and sensitive configurations in AWS SSM Parameter Store.
-  - Used IAM roles with least privilege principles for Lambda functions.
+- **Lambda Layers**:
+  - Created a Lambda Layer to include external Python libraries (e.g., `rsa` module) that are not available in the standard Lambda runtime.
+  - This ensures that dependencies are managed efficiently and consistently across functions.
 
-#### **Visitor Counter**:
+- **Using Boto3**:
+  - Utilized the `boto3` library in Python code to interact with AWS services like DynamoDB, SES, and SSM Parameter Store.
+  - Enabled dynamic data retrieval and manipulation within Lambda functions.
 
-- **Lambda Function**:
-  - Reads and updates the visitor count in a DynamoDB table.
-  - Ensures atomic operations to prevent read/write conflicts.
+#### **CloudFront and S3 Integration**
 
-- **DynamoDB Configuration**:
-  - Set up with a primary key for efficient data retrieval.
-  - Configured auto-scaling to handle varying levels of traffic.
+- **Origin Access Control (OAC)**:
+  - Configured CloudFront with OAC to securely access private S3 buckets:
+    - Implemented using `aws_cloudfront_origin_access_control`.
+    - Ensured that S3 buckets are not publicly accessible and can only be accessed through CloudFront.
+  - Updated S3 bucket policies to allow access from CloudFront using the OAC.
 
-- **Frontend Display**:
-  - The visitor count is fetched and updated in real-time on the website.
+- **Signed URLs and OAC Compatibility**:
+  - Ensured that signed URLs work in tandem with OAC by properly configuring the CloudFront distribution and S3 bucket policies.
+  - Established a secure chain of trust where users access content via CloudFront using signed URLs, and CloudFront accesses the S3 bucket using OAC.
+
+#### **API Gateway and Lambda Integration**
+
+- **Handling CORS and Preflight Requests**:
+  - Configured API Gateway methods to handle OPTIONS requests for CORS preflight checks:
+    - Added OPTIONS methods using `aws_api_gateway_method`.
+    - Integrated these methods with Lambda functions using `aws_api_gateway_integration`.
+  - For AWS_PROXY integrations, updated Lambda functions to handle OPTIONS requests and include necessary CORS headers in the responses.
+
+- **Dependence Management in Terraform**:
+  - Used `depends_on` in Terraform to ensure resources are created in the correct order.
+  - This prevents deployment failures due to resource dependencies not being met.
+
+#### **Terraform State Management**
+
+- **Storing State Files Securely**:
+  - Configured Terraform to use an S3 bucket as a remote backend for state files:
+    - Enhanced collaboration by ensuring everyone uses the same state.
+    - Improved security by storing state files remotely.
+  - Enabled state locking with DynamoDB to prevent concurrent modifications:
+    - Prevents state file corruption due to simultaneous operations.
+
+- **Ignoring Unnecessary Files**:
+  - Updated `.gitignore` to exclude directories like `.terraform/` and untracked them from the repository:
+    - Ensures that local environment files are not pushed to version control.
 
 ### **3. Infrastructure Automation**
 
 - **Terraform Configuration**:
   - Wrote Terraform scripts to define AWS resources like S3 buckets, Lambda functions, API Gateway, DynamoDB tables, and IAM roles.
-  - Used Terraform modules for reusability and organized code.
-
-- **Resource Dependency Management**:
-  - Employed `depends_on` attributes to manage resource creation order.
-  - Used Terraform state files to track resource changes over time.
+  - Included detailed comments in the Terraform code to explain configurations and important considerations.
+  - Used modules and organized code for clarity and reusability.
 
 - **Version Control**:
   - Stored Terraform code in a Git repository for versioning and collaboration.
+  - Ensured sensitive information is managed securely.
 
 ### **4. Continuous Integration and Deployment (CI/CD)**
 
 - **GitHub Actions**:
   - Set up workflows to automatically deploy the frontend website to the S3 bucket whenever changes are pushed to the Git repository.
   - Configured actions to build, test, and deploy code, ensuring a streamlined development process.
+  - Managed AWS credentials securely using GitHub Secrets.
+
+- **Addressing Public Access Settings**:
+  - Resolved issues with S3 bucket public access settings by adjusting bucket policies and removing unnecessary ACL configurations.
+  - Ensured that the `--acl public-read` flag was used appropriately in deployment scripts.
 
 ---
 
@@ -168,8 +201,7 @@ Check it out live at: [www.samuelalber.com](http://www.samuelalber.com)
 
 - **RSA Encryption**:
   - RSA is an asymmetric cryptographic algorithm that uses a pair of keys: a **public key** and a **private key**.
-  - The **public key** can be distributed openly, while the **private key** must be kept secure.
-  - Data encrypted with the public key can only be decrypted with the private key and vice versa.
+  - The **private key** is used to sign data, and the **public key** is used to verify the signature.
 
 - **CloudFrontSigner and RSA in Python**:
   - In the Lambda function for the CV Request Feature, I used **CloudFrontSigner** from the `aws-cloudfront-sign` module.
@@ -178,7 +210,6 @@ Check it out live at: [www.samuelalber.com](http://www.samuelalber.com)
 
 - **Generating Signed URLs**:
   - The Lambda function uses the RSA private key to sign a policy that includes the URL, expiration time, and access restrictions.
-  - The **rsa** library handles the cryptographic signing process, ensuring the integrity and authenticity of the signed URL.
   - The signed URL allows temporary access to the CV stored in S3 via CloudFront, ensuring that only users with the signed URL can download the file.
 
 ### **Security Benefits**
@@ -258,13 +289,13 @@ When you type `www.samuelalber.com` into your browser, here's what happens behin
 #### **CV Request**:
 
 1. **User Interaction**:
-   - You enter your email address and submit the request.
+   - You enter your email address and click the "Receive My CV" button.
 
 2. **API Call**:
    - The frontend sends a POST request containing your email to the API Gateway.
 
 3. **Lambda Function Workflow**:
-   - **Email Validation**: Ensures the email is in a correct format.
+   - **Email Validation**: Ensures the email is in the correct format.
    - **Signed URL Generation**:
      - Uses the **rsa** library to load the RSA private key.
      - The **CloudFrontSigner** creates a signed URL using the private key.
@@ -297,63 +328,201 @@ When you type `www.samuelalber.com` into your browser, here's what happens behin
 
 ## **Challenges and Solutions**
 
-### **1. Integrating GitHub Actions for CI/CD**
+### **1. Handling CORS (Cross-Origin Resource Sharing) Issues**
 
-- **Challenge**:
-  - Needed to automate the deployment process to ensure that any changes to the frontend code are reflected on the live website without manual intervention.
+**Challenge**:
 
-- **Solution**:
-  - Implemented **GitHub Actions** workflows that trigger on pushes to the main branch.
-  - Configured the workflow to build and upload the website files to the S3 bucket, invalidating CloudFront cache as necessary.
+- Encountered CORS errors when the frontend JavaScript tried to make API calls to the backend services hosted on different domains.
+- Specifically, pressing the "Receive My CV" button resulted in CORS errors due to missing or incorrect handling of preflight OPTIONS requests.
 
-### **2. Using RSA with CloudFrontSigner in Python**
+**Understanding Preflight CORS and the OPTIONS Method**:
 
-- **Challenge**:
-  - Generating signed URLs for CloudFront required correctly implementing RSA signing in the Lambda function.
+- **Preflight Requests**:
+  - Browsers send a preflight OPTIONS request before making certain cross-origin requests, especially when using methods like POST with custom headers.
+- **OPTIONS Method**:
+  - The server must respond to the OPTIONS request with the appropriate CORS headers to indicate that the cross-origin request is allowed.
+- **Why OPTIONS Is Needed**:
+  - Without handling the OPTIONS request, the browser will block the actual request, resulting in a CORS error.
 
-- **Solution**:
-  - Used the **rsa** Python library to load the private key and sign the URL policy.
-  - Ensured the private key was in the correct PEM format and securely stored in AWS SSM Parameter Store.
-  - Integrated **CloudFrontSigner** with the **rsa** utility to generate valid signed URLs.
+**Solution**:
 
-### **3. Understanding RSA Encryption in CloudFront Signed URLs**
+- **API Gateway Configuration**:
+  - Added the OPTIONS method to the API Gateway resources.
+  - Configured the method and integration for OPTIONS using `aws_api_gateway_method` and `aws_api_gateway_integration` in Terraform.
+  - Ensured that both the method and integration for OPTIONS were properly set up.
+- **Lambda Function Adjustments**:
+  - For AWS_PROXY integrations, modified Lambda functions to handle OPTIONS requests and include CORS headers in the response:
+    ```python
+    return {
+        'statusCode': 200,
+        'headers': {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        },
+        'body': ''
+    }
+    ```
+- **Key Takeaways**:
+  - **Mandatory Headers**:
+    - Including CORS headers in the Lambda function responses is essential for the browser to accept the responses.
+  - **Testing**:
+    - Tested the API behavior using tools like `curl` and the API Gateway console to ensure that both OPTIONS and POST methods worked correctly.
+  - **Depends On in Terraform**:
+    - Used `depends_on` in Terraform to ensure that resources were created in the correct order, particularly for API Gateway deployments.
 
-- **Challenge**:
-  - Needed to understand how RSA encryption works in the context of CloudFront signed URLs to implement secure access.
+### **2. Managing Resource Dependencies in Terraform**
 
-- **Solution**:
-  - Studied the RSA algorithm and how it applies to signing data.
-  - Learned that CloudFront uses the RSA public-private key pair to verify that a signed URL or signed cookie hasn't been tampered with.
-  - Implemented the signing process in the Lambda function using the RSA private key, while CloudFront uses the corresponding public key to validate the signature.
+**Challenge**:
 
-### **4. Handling CORS Issues**
+- Deployment failures occurred because Terraform tried to create resources before their dependencies were ready.
+- Specifically, the API Gateway deployment failed because methods and integrations were not fully set up.
 
-- **Challenge**:
-  - The browser blocked API requests due to missing or incorrect CORS headers.
+**Solution**:
 
-- **Solution**:
-  - Configured CORS in API Gateway by enabling CORS on resource methods.
-  - Updated Lambda functions to include `Access-Control-Allow-Origin` headers.
+- **Using `depends_on`**:
+  - Employed the `depends_on` attribute in Terraform resource blocks to define explicit dependencies.
+  - For example, in the `aws_api_gateway_deployment` resource, added dependencies on methods and integrations:
+    ```hcl
+    resource "aws_api_gateway_deployment" "api_deployment" {
+      depends_on = [
+        aws_api_gateway_integration.lambda_integration,
+        aws_api_gateway_integration.send_cv_post_integration,
+        aws_api_gateway_integration.crypto_api_integration,
+        aws_api_gateway_integration.send_cv_options_integration
+      ]
+      rest_api_id = aws_api_gateway_rest_api.viewer_count_api.id
+    }
+    ```
+- **Organizing Terraform Code**:
+  - Split Terraform configurations into modules and organized code for clarity.
+  - Used `terraform.tfvars` for variable management.
 
-### **5. Resolving CloudFront and S3 Access Denied Errors**
+### **3. Understanding IAM Policies and Roles**
 
-- **Challenge**:
-  - Encountered "Access Denied" errors when CloudFront tried to access S3 objects.
+**Challenge**:
 
-- **Solution**:
-  - Implemented **CloudFront Origin Access Control (OAC)**.
-  - Updated S3 bucket policies to allow access from the CloudFront OAC principal.
-  - Ensured public access to the S3 bucket was blocked.
+- Confusion between resource-based policies and identity-based policies.
+- Needed to understand when to use IAM roles and how `sts:AssumeRole` works.
 
-### **6. Managing Terraform Resource Dependencies**
+**Solution**:
 
-- **Challenge**:
-  - Deployment errors due to resources being created out of order.
+- **Resource-Based Policies**:
+  - Standalone policies attached directly to resources (e.g., S3 bucket policies).
+  - Used for granting cross-account access or public access to resources.
+- **Identity-Based Policies**:
+  - Policies attached to IAM identities (users, groups, roles).
+  - Used for granting permissions to identities to access AWS resources.
+- **IAM Roles and `sts:AssumeRole`**:
+  - Created IAM roles for AWS services (e.g., Lambda) to assume.
+  - The `sts:AssumeRole` action in the trust policy allows the service to assume the role.
+  - Example trust policy:
+    ```json
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Principal": {
+            "Service": "lambda.amazonaws.com"
+          },
+          "Action": "sts:AssumeRole"
+        }
+      ]
+    }
+    ```
+- **Understanding `Action = "sts:AssumeRole"`**:
+  - Allows trusted entities to assume the role and gain the permissions attached to it.
 
-- **Solution**:
-  - Used the `depends_on` attribute in Terraform resource blocks.
-  - Organized Terraform code into modules.
-  - Ran `terraform plan` before applying changes.
+### **4. Securing Terraform State Files**
+
+**Challenge**:
+
+- Needed to store Terraform state files (`terraform.tfstate`) securely and enable collaboration.
+
+**Solution**:
+
+- **Remote Backend Configuration**:
+  - Configured Terraform to use an S3 bucket as a remote backend for state files.
+  - Enabled state locking using a DynamoDB table to prevent concurrent modifications.
+- **S3 Bucket and DynamoDB Setup**:
+  ```hcl
+  terraform {
+    backend "s3" {
+      bucket         = "your-s3-bucket-name"
+      key            = "path/to/terraform.tfstate"
+      region         = "your-region"
+      dynamodb_table = "terraform-lock-table"
+    }
+  }
+  ```
+- **Ensuring Bucket Privacy**:
+  - Set up the S3 bucket to be private, as Terraform state files can contain sensitive information.
+  - Did not expose the bucket via CloudFront, as it's unnecessary for state files.
+- **IAM Permissions**:
+  - Provided necessary IAM permissions for users and CI/CD systems to access the S3 bucket and DynamoDB table.
+  - Used IAM roles and policies to manage access securely.
+
+### **5. Resolving CloudFront and S3 Access Issues**
+
+**Challenge**:
+
+- Encountered "Access Denied" errors when CloudFront attempted to access objects in the S3 bucket.
+- Needed to understand the relationship between CloudFront Origin Access Control (OAC) and signed URLs.
+
+**Solution**:
+
+- **Using OAC with Signed URLs**:
+  - Configured **CloudFront Origin Access Control (OAC)** to allow CloudFront to access the private S3 bucket securely.
+  - Updated the S3 bucket policy to grant access to the OAC.
+  - Confirmed that OAC and signed URLs can be used together, as they secure different parts of the access flow.
+- **Mandatory `origin_access_control_id`**:
+  - Ensured that `origin_access_control_id` was set in the CloudFront distribution to enable SigV4 signing.
+  - Without it, CloudFront cannot make authenticated requests to the private S3 bucket.
+- **S3 Bucket Policy**:
+  ```json
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Sid": "AllowCloudFrontAccess",
+        "Effect": "Allow",
+        "Principal": {
+          "Service": "cloudfront.amazonaws.com"
+        },
+        "Action": "s3:GetObject",
+        "Resource": "arn:aws:s3:::your-bucket-name/*",
+        "Condition": {
+          "StringEquals": {
+            "AWS:SourceArn": "arn:aws:cloudfront::your-account-id:distribution/your-distribution-id"
+          }
+        }
+      }
+    ]
+  }
+  ```
+- **Chain of Trust with CloudFront and S3**:
+  - Established a secure chain of trust where users access content via CloudFront using signed URLs, and CloudFront accesses the S3 bucket using OAC.
+
+### **6. GitHub Actions and CI/CD Challenges**
+
+**Challenge**:
+
+- Needed to automate the deployment process and manage AWS credentials securely.
+- Encountered issues with public access settings when uploading the website via GitHub Actions.
+
+**Solution**:
+
+- **Automating Deployment**:
+  - Configured GitHub Actions workflows to deploy the frontend to S3 on code pushes.
+  - Ensured that AWS credentials were securely managed using GitHub Secrets.
+- **Public Access Settings**:
+  - S3 buckets have default block public access settings that prevent public-read ACLs.
+  - Adjusted the bucket policy and ACLs to allow public access where appropriate.
+  - Removed the `--acl public-read` flag from the AWS CLI commands in the workflow, as it was unnecessary and caused errors.
+- **Ignoring Unnecessary Files in Git**:
+  - Added `.gitignore` entries to exclude directories like `.terraform/` from being tracked.
+  - Used `git rm -r --cached .terraform` to untrack files already committed.
 
 ---
 
@@ -380,5 +549,30 @@ When you type `www.samuelalber.com` into your browser, here's what happens behin
 ---
 
 Thank you for taking the time to explore my project! If you have any feedback or ideas for collaboration, I'd love to hear from you. Feel free to reach out via the contact information on my website.
+
+---
+
+# **Additional Notes**
+
+## **Understanding CORS and Preflight Requests**
+
+- **CORS Configuration**:
+  - In the context of AWS Lambda and API Gateway, when using AWS_PROXY integrations, the Lambda function must handle CORS, including OPTIONS preflight requests.
+- **Why OPTIONS Method Is Needed**:
+  - Browsers send an OPTIONS request as a preflight check to determine if the actual request is safe to send.
+  - The server must respond to the OPTIONS request with appropriate CORS headers.
+- **Handling OPTIONS in Lambda**:
+  - Modified Lambda functions to return a 200 response with necessary CORS headers when handling OPTIONS requests.
+
+## **Terraform Best Practices**
+
+- **Resource Comments**:
+  - Included detailed comments in Terraform code to explain the purpose of configurations and any important considerations.
+- **State Management**:
+  - Considered setting up a separate S3 bucket and DynamoDB table for storing and locking Terraform state files in a collaborative environment.
+- **Ignoring Unnecessary Files**:
+  - Ensured that `.gitignore` includes directories and files that should not be tracked, such as `.terraform/` and `terraform.tfstate`.
+- **Dependence Management**:
+  - Recognized the importance of `depends_on` to manage resource creation order and prevent deployment issues.
 
 ---
