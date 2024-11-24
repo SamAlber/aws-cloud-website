@@ -2776,6 +2776,12 @@ fieldset:disabled a.btn {
   border-color: #695aa6;
 }
 
+.btn-visit-git { 
+  color: yellow;
+  background-color: #450;
+  border-color: yellow;
+}
+
 .btn-primary:hover {
   color: #fff;
   background-color: #594c8d;
@@ -12061,11 +12067,16 @@ pre .code {
   -webkit-justify-content: center;
       -ms-flex-pack: center;
           justify-content: center;
-  background-image: url(../imgs/header.jpg);
+  background-image: url(../imgs/alien_terminal.png);
   background-size: cover;
   background-repeat: no-repeat;
   background-position: center center;
 }
+
+h3 .counter-number {
+  color: white; /* Ensure the full hex code (6 characters) is valid */
+}
+
 
 .header .overlay {
   position: absolute;
@@ -12089,7 +12100,7 @@ pre .code {
 .header .header-content .header-title .up {
   font-size: calc(30px + (60 - 30) * ((100vw - 300px) / (1300 - 300)));
   font-weight: 500;
-  color: #444;
+  color: #450;
   margin-bottom: 5px;
   position: relative;
   display: block;
