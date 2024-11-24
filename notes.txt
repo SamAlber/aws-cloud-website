@@ -609,8 +609,16 @@ The CORS error you're encountering stems from the API Gateway not handling the p
 OPTIONS preflight request to verify if the server permits such requests from the origin. Since the API Gateway isn't configured to handle OPTIONS requests for the /send-cv resource, it results in a CORS error.
 
 
-
-
-
 When using AWS_PROXY integration and your Lambda function is configured to handle CORS 
 (including handling OPTIONS requests and returning the appropriate CORS headers), you do not need to set up MOCK integrations for the OPTIONS methods. The MOCK integrations become unnecessary in this scenario.
+
+Key Takeaways
+Separate Integrations for Each Method:
+
+Even though you had an integration for POST, a separate OPTIONS method and its corresponding integration were necessary because the preflight request has its own lifecycle in the API Gateway.
+Lambda Handles Preflight:
+
+The AWS_PROXY type ensures that the Lambda function handles both POST and OPTIONS requests, simplifying CORS handling.
+Test Thoroughly:
+
+Always test the API behavior using tools like curl for both POST and OPTIONS requests, as you did.
