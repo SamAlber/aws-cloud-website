@@ -107,7 +107,7 @@ Check it out live at: [www.samuelalber.com](http://www.samuelalber.com)
 #### **Lambda Functions and Layers**
 
 - **Lambda Layers**:
-  - Created a Lambda Layer to include external Python libraries (e.g., `rsa` module) that are not available in the standard Lambda runtime.
+  - Created Lambda Layers to include external Python libraries (e.g., `rsa`, `requests` modules) that are not available in the standard Lambda runtime.
   - This ensures that dependencies are managed efficiently and consistently across functions.
 
 - **Using Boto3**:
@@ -175,23 +175,89 @@ Check it out live at: [www.samuelalber.com](http://www.samuelalber.com)
 
 ---
 
-## **Domain Purchase and SSL/TLS Configuration**
+## **Domain Purchase, DNS Zone, and SSL/TLS Configuration**
 
-- **Domain Registration with Cloudflare**:
-  - Purchased `samuelalber.com` from Cloudflare, taking advantage of their competitive pricing and reliable services.
+### **Domain Registration with Cloudflare**
 
-- **DNS Management**:
-  - Configured DNS records in Cloudflare to point to the AWS CloudFront distribution.
-  - Set up CNAME records for `www.samuelalber.com` and `samuelalber.com` to ensure both resolve correctly.
+- **Purchase and Registration**:
+  - Purchased `samuelalber.com` from **Cloudflare**, taking advantage of their competitive pricing and reliable services.
 
-- **SSL/TLS Integration with AWS ACM**:
-  - Requested SSL/TLS certificates from **AWS Certificate Manager** for the domain and subdomains.
-  - Validated domain ownership through DNS validation by adding CNAME records provided by ACM to Cloudflare's DNS settings.
-  - Configured CloudFront to use the SSL/TLS certificates from ACM, enabling HTTPS access to the website.
+### **DNS Zone Management**
 
-- **End-to-End Encryption**:
-  - Ensured that data is encrypted in transit from the user's browser to CloudFront and from CloudFront to S3.
-  - Set CloudFront to use HTTPS when communicating with origin servers (S3 bucket).
+- **DNS Records Configuration**:
+  - Managed DNS settings in Cloudflare's DNS zone for `samuelalber.com`.
+  - Set up CNAME records for both `www.samuelalber.com` and `samuelalber.com` pointing to the CloudFront distribution domain name.
+    - This ensures that both the root domain and the www subdomain resolve correctly.
+  - Used Terraform to automate the creation of DNS records:
+    ```hcl
+    resource "cloudflare_dns_record" "cdn_records" {
+      for_each = {
+        "root" = {
+          name    = "samuelalber.com"
+          content = aws_cloudfront_distribution.cdn.domain_name
+          type    = "CNAME"
+        }
+        "www" = {
+          name    = "www.samuelalber.com"
+          content = aws_cloudfront_distribution.cdn.domain_name
+          type    = "CNAME"
+        }
+      }
+      name    = each.value.name
+      content = each.value.content
+      type    = each.value.type
+      zone_id = var.cloudflare_zone_id
+      ttl     = 300
+    }
+    ```
+
+### **SSL/TLS Integration with AWS ACM**
+
+- **Certificate Request and Validation**:
+  - Requested SSL/TLS certificates from **AWS Certificate Manager (ACM)** for the domain and subdomains.
+    - Used the Terraform resource `aws_acm_certificate` with `validation_method = "DNS"`.
+  - Validated domain ownership through DNS validation:
+    - Added CNAME records provided by ACM to Cloudflare's DNS settings using Terraform.
+    - Example:
+      ```hcl
+      resource "cloudflare_dns_record" "acm_validation_records" {
+        for_each = {
+          for dvo in aws_acm_certificate.cert_for_cloudflare_dns.domain_validation_options : dvo.domain_name => {
+            name    = replace(dvo.resource_record_name, "/\\.$/", "")
+            content = replace(dvo.resource_record_value, "/\\.$/", "")
+            type    = dvo.resource_record_type
+          }
+        }
+        name    = each.value.name
+        content = each.value.content
+        type    = each.value.type
+        zone_id = var.cloudflare_zone_id
+        ttl     = 300
+      }
+      ```
+  - Validated the certificate using `aws_acm_certificate_validation`.
+
+- **End-to-End Encryption**
+
+  - **Between User's Browser and CloudFront**:
+    - **SSL/TLS Certificates**:
+      - The user's browser establishes a secure HTTPS connection to CloudFront.
+      - The SSL/TLS certificate used is issued by **AWS Certificate Manager (ACM)**.
+      - This certificate is associated with the CloudFront distribution and covers `samuelalber.com` and `www.samuelalber.com`.
+    - **Process**:
+      - The browser trusts the certificate because it's issued by a trusted Certificate Authority (CA).
+      - Ensures that data is encrypted in transit between the user's browser and CloudFront.
+
+  - **Between CloudFront and S3**:
+    - **CloudFront Origin Protocol Policy**:
+      - Configured CloudFront to use HTTPS when communicating with the S3 origin.
+      - Set `origin_protocol_policy = "https-only"` in the CloudFront distribution's origin settings.
+    - **Certificates Used**:
+      - AWS manages the certificates for the connection between CloudFront and S3.
+      - These are internal AWS certificates, and the communication is secured within the AWS network.
+    - **Security Benefit**:
+      - Ensures that data remains encrypted during transit within AWS services.
+      - Protects against potential interception even within the cloud environment.
 
 ---
 
@@ -254,8 +320,10 @@ When you type `www.samuelalber.com` into your browser, here's what happens behin
    - Cloudflare provides the DNS records, including the CNAME pointing to the AWS CloudFront distribution.
 
 7. **Connecting to CloudFront**:
-   - The browser resolves the CNAME to the CloudFront distribution's IP address.
-   - **SSL/TLS Handshake**: A secure connection is established using SSL/TLS certificates managed by AWS ACM and recognized by Cloudflare.
+   - The browser resolves the CNAME to the CloudFront distribution's domain name.
+   - **SSL/TLS Handshake**:
+     - A secure HTTPS connection is established using the SSL/TLS certificate issued by AWS ACM and associated with the CloudFront distribution.
+     - The browser verifies the certificate's validity and trustworthiness.
 
 8. **Content Delivery**:
    - CloudFront serves the requested content:
@@ -337,12 +405,25 @@ When you type `www.samuelalber.com` into your browser, here's what happens behin
 
 **Understanding Preflight CORS and the OPTIONS Method**:
 
+- **What is CORS?**
+  - Cross-Origin Resource Sharing (CORS) is a mechanism that allows a web page from one domain (origin) to access resources from a different domain.
+  - Browsers enforce the Same-Origin Policy, which restricts web pages from making requests to a different origin unless the server explicitly allows it via CORS headers.
+
 - **Preflight Requests**:
-  - Browsers send a preflight OPTIONS request before making certain cross-origin requests, especially when using methods like POST with custom headers.
+  - For certain types of cross-origin requests (e.g., those with custom headers or methods like POST), browsers send a preflight OPTIONS request to the server.
+  - The preflight request checks if the actual request is safe to send.
+
 - **OPTIONS Method**:
-  - The server must respond to the OPTIONS request with the appropriate CORS headers to indicate that the cross-origin request is allowed.
-- **Why OPTIONS Is Needed**:
-  - Without handling the OPTIONS request, the browser will block the actual request, resulting in a CORS error.
+  - The server must respond to the OPTIONS request with appropriate CORS headers to indicate that the cross-origin request is allowed.
+  - Required headers include:
+    - `Access-Control-Allow-Origin`: Specifies which origins are allowed.
+    - `Access-Control-Allow-Methods`: Specifies which HTTP methods are allowed.
+    - `Access-Control-Allow-Headers`: Specifies which headers are allowed.
+
+- **Why the Browser Thinks the Request is Safe Based on These Headers**:
+  - The browser examines the response to the OPTIONS request.
+  - If the response includes the necessary CORS headers allowing the origin, method, and headers, the browser proceeds with the actual request.
+  - If not, the browser blocks the request to protect the user from potential security risks.
 
 **Solution**:
 
@@ -350,26 +431,30 @@ When you type `www.samuelalber.com` into your browser, here's what happens behin
   - Added the OPTIONS method to the API Gateway resources.
   - Configured the method and integration for OPTIONS using `aws_api_gateway_method` and `aws_api_gateway_integration` in Terraform.
   - Ensured that both the method and integration for OPTIONS were properly set up.
+
 - **Lambda Function Adjustments**:
   - For AWS_PROXY integrations, modified Lambda functions to handle OPTIONS requests and include CORS headers in the response:
     ```python
-    return {
-        'statusCode': 200,
-        'headers': {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        },
-        'body': ''
-    }
+    if event.get('httpMethod') == 'OPTIONS':
+        return {
+            "statusCode": 200,
+            "headers": {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST,OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type,Authorization",
+            },
+            "body": json.dumps({"message": "CORS preflight request success"})
+        }
     ```
+  - This ensures that the Lambda function responds appropriately to preflight requests.
+
 - **Key Takeaways**:
   - **Mandatory Headers**:
     - Including CORS headers in the Lambda function responses is essential for the browser to accept the responses.
   - **Testing**:
     - Tested the API behavior using tools like `curl` and the API Gateway console to ensure that both OPTIONS and POST methods worked correctly.
-  - **Depends On in Terraform**:
-    - Used `depends_on` in Terraform to ensure that resources were created in the correct order, particularly for API Gateway deployments.
+  - **Understanding Browser Behavior**:
+    - Recognized that browsers enforce CORS policies strictly, and proper handling is crucial for functionality.
 
 ### **2. Managing Resource Dependencies in Terraform**
 
@@ -398,131 +483,221 @@ When you type `www.samuelalber.com` into your browser, here's what happens behin
   - Split Terraform configurations into modules and organized code for clarity.
   - Used `terraform.tfvars` for variable management.
 
-### **3. Understanding IAM Policies and Roles**
+---
 
-**Challenge**:
+## **Code Analysis**
 
-- Confusion between resource-based policies and identity-based policies.
-- Needed to understand when to use IAM roles and how `sts:AssumeRole` works.
+### **1. Lambda Functions**
 
-**Solution**:
+#### **Visitor Counter Lambda Function**
 
-- **Resource-Based Policies**:
-  - Standalone policies attached directly to resources (e.g., S3 bucket policies).
-  - Used for granting cross-account access or public access to resources.
-- **Identity-Based Policies**:
-  - Policies attached to IAM identities (users, groups, roles).
-  - Used for granting permissions to identities to access AWS resources.
-- **IAM Roles and `sts:AssumeRole`**:
-  - Created IAM roles for AWS services (e.g., Lambda) to assume.
-  - The `sts:AssumeRole` action in the trust policy allows the service to assume the role.
-  - Example trust policy:
-    ```json
-    {
-      "Version": "2012-10-17",
-      "Statement": [
-        {
-          "Effect": "Allow",
-          "Principal": {
-            "Service": "lambda.amazonaws.com"
-          },
-          "Action": "sts:AssumeRole"
-        }
-      ]
-    }
-    ```
-- **Understanding `Action = "sts:AssumeRole"`**:
-  - Allows trusted entities to assume the role and gain the permissions attached to it.
+**File**: `lambda_function.py`
 
-### **4. Securing Terraform State Files**
+**Purpose**:
 
-**Challenge**:
+- Reads and updates the visitor count stored in a DynamoDB table.
+- Handles concurrent requests and ensures data consistency.
 
-- Needed to store Terraform state files (`terraform.tfstate`) securely and enable collaboration.
+**Key Components**:
 
-**Solution**:
+- **Imports**:
+  - `boto3`: AWS SDK for Python, used to interact with DynamoDB.
+  - `os`: Access environment variables.
+  - `json`: Handle JSON data.
 
-- **Remote Backend Configuration**:
-  - Configured Terraform to use an S3 bucket as a remote backend for state files.
-  - Enabled state locking using a DynamoDB table to prevent concurrent modifications.
-- **S3 Bucket and DynamoDB Setup**:
-  ```hcl
-  terraform {
-    backend "s3" {
-      bucket         = "your-s3-bucket-name"
-      key            = "path/to/terraform.tfstate"
-      region         = "your-region"
-      dynamodb_table = "terraform-lock-table"
-    }
+- **DynamoDB Initialization**:
+  ```python
+  dynamodb = boto3.resource('dynamodb')
+  table_name = os.environ['DYNAMODB_TABLE']
+  table = dynamodb.Table(table_name)
+  ```
+
+- **Lambda Handler**:
+  ```python
+  def lambda_handler(event, context):
+      # Define the primary key
+      primary_key = "page_views"
+      # Get current count
+      response = table.get_item(Key={'counter_id': primary_key})
+      # Increment count
+      new_count = current_count + 1
+      # Update count in DynamoDB
+      table.put_item(Item={'counter_id': primary_key, 'view_count': new_count})
+      # Return response with CORS headers
+  ```
+
+- **CORS Headers**:
+  - Included in the response to allow cross-origin requests from the frontend.
+  - Essential for browser acceptance.
+
+**Notes**:
+
+- **Decimal Conversion**:
+  - DynamoDB returns numbers as `Decimal` objects.
+  - Converted to `int` using `int()` to ensure JSON serialization.
+
+- **Full Item Replacement with `put_item`**:
+  - `put_item` replaces the entire item.
+  - Must specify all attributes to avoid data loss.
+
+#### **CV Request Lambda Function**
+
+**File**: `SES_lambda.py`
+
+**Purpose**:
+
+- Handles CV requests by validating the email, generating a signed URL, and sending it via SES.
+
+**Key Components**:
+
+- **Imports**:
+  - `boto3`: Interact with AWS services (SES, SSM).
+  - `json`, `os`, `re`: Handle data and environment variables.
+  - `datetime`, `timedelta`: Manage URL expiration.
+  - `logging`: Log errors and information.
+  - `CloudFrontSigner`, `rsa`: Generate signed URLs.
+
+- **Email Validation**:
+  ```python
+  def is_valid_email(email):
+      regex = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+      return re.match(regex, email) is not None
+  ```
+
+- **Parameter Retrieval**:
+  - Fetches sensitive data like private keys from SSM Parameter Store.
+  - Ensures secure handling of secrets.
+
+- **RSA Signer Function**:
+  ```python
+  def rsa_signer(message):
+      private_key_pem = get_parameter('/cloudfront/private_key')
+      private_key = rsa.PrivateKey.load_pkcs1(private_key_pem.encode('utf-8'))
+      return rsa.sign(message, private_key, 'SHA-1')
+  ```
+
+- **Generate Signed URL**:
+  - Uses `CloudFrontSigner` with the RSA signer to create a time-limited URL.
+
+- **Lambda Handler**:
+  - Handles both POST and OPTIONS (CORS preflight) requests.
+  - Validates input, generates signed URL, and sends email via SES.
+  - Returns appropriate responses with CORS headers.
+
+**Notes**:
+
+- **Exception Handling**:
+  - Logs errors and returns meaningful HTTP status codes.
+  - Re-raises exceptions where necessary to maintain traceability.
+
+- **Security Considerations**:
+  - Stores private keys securely.
+  - Validates email input to prevent misuse.
+
+#### **Cryptocurrency Price Tracker Lambda Function**
+
+**File**: `crypto_api.py`
+
+**Purpose**:
+
+- Fetches current prices for specified cryptocurrencies from an external API.
+
+**Key Components**:
+
+- **Imports**:
+  - `json`, `requests`: Handle HTTP requests and JSON data.
+  - `boto3`: Access SSM Parameter Store.
+
+- **Parameter Retrieval**:
+  - Retrieves API key securely from SSM.
+
+- **Lambda Handler**:
+  - Parses query parameters or JSON body to get symbols.
+  - Makes an external API call to fetch prices.
+  - Handles exceptions and returns data with CORS headers.
+
+- **Response Parsing**:
+  ```python
+  prices = {
+      symbol: data['data'][symbol]['quote']['USD']['price']
+      for symbol in symbols.split(',') if symbol in data['data']
   }
   ```
-- **Ensuring Bucket Privacy**:
-  - Set up the S3 bucket to be private, as Terraform state files can contain sensitive information.
-  - Did not expose the bucket via CloudFront, as it's unnecessary for state files.
-- **IAM Permissions**:
-  - Provided necessary IAM permissions for users and CI/CD systems to access the S3 bucket and DynamoDB table.
-  - Used IAM roles and policies to manage access securely.
 
-### **5. Resolving CloudFront and S3 Access Issues**
+**Notes**:
 
-**Challenge**:
+- **Error Handling**:
+  - Returns detailed error messages for debugging.
+  - Uses try-except blocks to catch and handle exceptions.
 
-- Encountered "Access Denied" errors when CloudFront attempted to access objects in the S3 bucket.
-- Needed to understand the relationship between CloudFront Origin Access Control (OAC) and signed URLs.
+- **Default Symbols**:
+  - Uses 'BTC,ETH' as default if no symbols are provided.
 
-**Solution**:
+### **2. Frontend JavaScript**
 
-- **Using OAC with Signed URLs**:
-  - Configured **CloudFront Origin Access Control (OAC)** to allow CloudFront to access the private S3 bucket securely.
-  - Updated the S3 bucket policy to grant access to the OAC.
-  - Confirmed that OAC and signed URLs can be used together, as they secure different parts of the access flow.
-- **Mandatory `origin_access_control_id`**:
-  - Ensured that `origin_access_control_id` was set in the CloudFront distribution to enable SigV4 signing.
-  - Without it, CloudFront cannot make authenticated requests to the private S3 bucket.
-- **S3 Bucket Policy**:
-  ```json
-  {
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Sid": "AllowCloudFrontAccess",
-        "Effect": "Allow",
-        "Principal": {
-          "Service": "cloudfront.amazonaws.com"
-        },
-        "Action": "s3:GetObject",
-        "Resource": "arn:aws:s3:::your-bucket-name/*",
-        "Condition": {
-          "StringEquals": {
-            "AWS:SourceArn": "arn:aws:cloudfront::your-account-id:distribution/your-distribution-id"
-          }
-        }
-      }
-    ]
+#### **Visitor Counter Script**
+
+**File**: `index.js`
+
+**Purpose**:
+
+- Fetches the visitor count from the backend API and updates the counter on the webpage.
+
+**Key Components**:
+
+- **DOM Manipulation**:
+  ```javascript
+  const counter = document.querySelector(".counter-number");
+  counter.innerHTML = `Views: ${data.view_count}`;
+  ```
+
+- **Asynchronous Function**:
+  - Uses `async/await` to handle the fetch operation.
+  - Ensures the counter updates after data is retrieved.
+
+#### **Cryptocurrency Price Tracker Script**
+
+**Purpose**:
+
+- Fetches cryptocurrency prices and displays them with logos on the webpage.
+
+**Key Components**:
+
+- **Fetch Prices**:
+  ```javascript
+  const response = await fetch(`${apiEndpoint}?symbols=${symbols}`);
+  const data = await response.json();
+  ```
+
+- **Dynamic Content Generation**:
+  - Creates DOM elements for each cryptocurrency.
+  - Inserts logos, names, and prices into the page.
+
+- **Error Handling**:
+  - Logs errors to the console and handles cases where data is missing.
+
+#### **CV Request Script**
+
+**Purpose**:
+
+- Handles the submission of the email form to request the CV.
+
+**Key Components**:
+
+- **Form Submission**:
+  ```javascript
+  async function sendEmailRequest() {
+      // Validate email
+      // Send POST request to API Gateway
+      // Update status messages
   }
   ```
-- **Chain of Trust with CloudFront and S3**:
-  - Established a secure chain of trust where users access content via CloudFront using signed URLs, and CloudFront accesses the S3 bucket using OAC.
 
-### **6. GitHub Actions and CI/CD Challenges**
+- **Email Validation**:
+  - Uses a simple regex to validate the email format.
 
-**Challenge**:
-
-- Needed to automate the deployment process and manage AWS credentials securely.
-- Encountered issues with public access settings when uploading the website via GitHub Actions.
-
-**Solution**:
-
-- **Automating Deployment**:
-  - Configured GitHub Actions workflows to deploy the frontend to S3 on code pushes.
-  - Ensured that AWS credentials were securely managed using GitHub Secrets.
-- **Public Access Settings**:
-  - S3 buckets have default block public access settings that prevent public-read ACLs.
-  - Adjusted the bucket policy and ACLs to allow public access where appropriate.
-  - Removed the `--acl public-read` flag from the AWS CLI commands in the workflow, as it was unnecessary and caused errors.
-- **Ignoring Unnecessary Files in Git**:
-  - Added `.gitignore` entries to exclude directories like `.terraform/` from being tracked.
-  - Used `git rm -r --cached .terraform` to untrack files already committed.
+- **User Feedback**:
+  - Updates the status message on the page to inform the user of success or errors.
 
 ---
 
@@ -558,21 +733,43 @@ Thank you for taking the time to explore my project! If you have any feedback or
 
 - **CORS Configuration**:
   - In the context of AWS Lambda and API Gateway, when using AWS_PROXY integrations, the Lambda function must handle CORS, including OPTIONS preflight requests.
-- **Why OPTIONS Method Is Needed**:
-  - Browsers send an OPTIONS request as a preflight check to determine if the actual request is safe to send.
-  - The server must respond to the OPTIONS request with appropriate CORS headers.
-- **Handling OPTIONS in Lambda**:
-  - Modified Lambda functions to return a 200 response with necessary CORS headers when handling OPTIONS requests.
+
+- **Which Headers Are Involved**:
+  - `Access-Control-Allow-Origin`: Specifies the origin that is allowed to access the resource.
+  - `Access-Control-Allow-Methods`: Specifies the HTTP methods (e.g., GET, POST) allowed when accessing the resource.
+  - `Access-Control-Allow-Headers`: Specifies the headers allowed when making the actual request.
+
+- **Why the Browser Thinks the Request is Safe Based on These Headers**:
+  - The browser sends a preflight OPTIONS request to check if the server allows the cross-origin request.
+  - If the server responds with the appropriate headers indicating permission, the browser proceeds with the actual request.
+  - This mechanism prevents unauthorized cross-origin requests that could compromise security.
 
 ## **Terraform Best Practices**
 
 - **Resource Comments**:
   - Included detailed comments in Terraform code to explain the purpose of configurations and any important considerations.
+
 - **State Management**:
-  - Considered setting up a separate S3 bucket and DynamoDB table for storing and locking Terraform state files in a collaborative environment.
-- **Ignoring Unnecessary Files**:
-  - Ensured that `.gitignore` includes directories and files that should not be tracked, such as `.terraform/` and `terraform.tfstate`.
-- **Dependence Management**:
-  - Recognized the importance of `depends_on` to manage resource creation order and prevent deployment issues.
+  - Set up a separate S3 bucket and DynamoDB table for storing and locking Terraform state files in a collaborative environment.
+    - Example:
+      ```hcl
+      terraform {
+        backend "s3" {
+          bucket         = "terraform.tfstate-bucket"
+          key            = "prod/terraform.tfstate"
+          region         = "us-east-1"
+          dynamodb_table = "tfstate-locks"
+          encrypt        = true
+        }
+      }
+      ```
+  - Ensured the S3 bucket is private and accessible only to authorized users.
+
+- **IAM Policies and Roles**:
+  - Defined clear IAM roles and policies to manage permissions.
+  - Used `sts:AssumeRole` to allow services like Lambda to assume roles with specific permissions.
+
+- **Using Random Suffixes for Bucket Names**:
+  - Implemented random strings to ensure uniqueness of S3 bucket names, as bucket names are globally unique.
 
 ---
