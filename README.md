@@ -1,10 +1,10 @@
-# Cloud Resume Challenge
+# AWS Resume Website
 
 ![Architecture](https://github.com/SamAlber/aws-cloud-website/blob/0333a39a1cc42b3d5a38c1952200d7f882cad749/website/assets/imgs/architecture.png)
 
 ## **Project Concept**
 
-The Cloud Resume Challenge is a hands-on project designed to showcase modern cloud technologies, DevOps practices, and full-stack development skills. This project integrates AWS services, infrastructure automation, and frontend development to create a dynamic resume website with additional functionalities like a cryptocurrency price tracker and a visitor counter.
+The Cloud Resume Challenge is a hands-on project designed to showcase modern cloud technologies, DevOps practices, and websecurity best practives. This project integrates AWS services, infrastructure automation and security best practives to create a dynamic resume website with additional functionalities like a cryptocurrency price tracker and a visitor counter.
 
 ### **Key Features**
 

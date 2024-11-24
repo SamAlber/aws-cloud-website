@@ -2780,6 +2780,15 @@ fieldset:disabled a.btn {
   color: yellow;
   background-color: #450;
   border-color: yellow;
+  font-size: 16px; /* Adjusts the text size */
+  width: 130px; /* Sets a fixed width (optional)  if not using padding */
+  height: 35px; /* Sets a fixed height (optional), if not using padding */ 
+  font-family: 'Baloo Paaji', cursive;
+  
+
+  display: flex;
+  align-items: center; /* Centers vertically */
+  justify-content: center; /* Centers horizontally */
 }
 
 .btn-primary:hover {
