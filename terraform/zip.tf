@@ -1,9 +1,7 @@
 data "archive_file" "crypto_api" {
   type        = "zip"
-  source      = [
-    "${path.module}/backend/crypto_api.py",
-  ]
-  output_path = "${path.root}/crypto_api.zip"
+  source_file = "../backend/crypto_api.py"
+  output_path = "crypto_api.zip"
 }
 
 output "crypto_api_path" {
@@ -15,10 +13,8 @@ output "crypto_api_path" {
 
 data "archive_file" "lambda_function" {
   type        = "zip"
-  source      = [
-    "${path.module}/backend/lambda_function.py",
-  ]
-  output_path = "${path.root}/viewer_count.zip"
+  source_file      = "../backend/lambda_function.py"
+  output_path = "viewer_count.zip"
 }
 
 output "lambda_function_path" {
@@ -29,10 +25,8 @@ output "lambda_function_path" {
 
 data "archive_file" "SES_lambda" {
   type        = "zip"
-  source      = [
-    "${path.module}/backend/SES_lambda.py",
-  ]
-  output_path = "${path.root}/SES_lambda.zip"
+  source_file      = "../backend/SES_lambda.py" 
+  output_path = "SES_lambda.zip"
 }
 
 output "SES_lambda_path" {

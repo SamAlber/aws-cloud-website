@@ -70,27 +70,21 @@ def get_parameter(param_name):
         Alert: Database is currently unavailable.
 '''
 
-
 def lambda_handler(event, context):
-    # API endpoint and key
-    url = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
-    try:
-        api_key = get_parameter('/lambda/market_cap_api_token')  # Store the key securely in environment variables (Stored in SSM in crypto_api.tf)
-    except Exception as e:
-        return {
-            'statusCode': 500,
-            'headers': {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET,OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type,Authorization'
-            },
-            'body': json.dumps({'error': f"Failed to retrieve API key: {str(e)}"}) # Uses json.dumps to convert the prices dictionary into a JSON string for returning.  
-        }
-    
+    print("Event object:", json.dumps(event))  # Debug log
 
+    # Extract query parameters     
+    # # Extract the symbols to fetch (BTC, ETH, etc.)
+    query_params = event.get('queryStringParameters') or {}
+    symbols = query_params.get('symbols', None)
 
-    # Extract the symbols to fetch (BTC, ETH, etc.)
-    symbols = event.get('queryStringParameters', {}).get('symbols', 'BTC,ETH')
+    # Fallback to parsing JSON body if no query parameters
+    if not symbols:
+        try:
+            body = json.loads(event.get('body', '{}'))
+            symbols = body.get('symbols', 'BTC,ETH')
+        except (TypeError, json.JSONDecodeError):
+            symbols = 'BTC,ETH'
     
     '''
     # The event object is typically a dictionary containing information about an incoming HTTP request in an AWS Lambda function.
@@ -138,21 +132,30 @@ def lambda_handler(event, context):
 
     '''
 
+    # Proceed with the rest of the code
+    url = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
+    try:
+        api_key = get_parameter('/lambda/market_cap_api_token')
+    except Exception as e:
+        return {
+            'statusCode': 500,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET,OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization'
+            },
+            'body': json.dumps({'error': f"Failed to retrieve API key: {str(e)}"})
+        }
+
     # Request parameters
-    params = {
-        'symbol': symbols,
-        'convert': 'USD'
-    }
-
-    headers = { # a dictionary that stores HTTP headers, which are metadata sent along with an HTTP request. 
-                # Headers typically include details such as the type of content, authorization credentials, and other information required by the server.
-        'X-CMC_PRO_API_KEY': api_key # A custom HTTP header. In this case, is specific to the CoinMarketCap API, and the X-CMC_PRO_API_KEY header is used to pass an API key for authentication.
-    }
-
-    # Call the API
+    params = {'symbol': symbols, 'convert': 'USD'}
+    headers = {'X-CMC_PRO_API_KEY': api_key} 
+    # a dictionary that stores HTTP headers, which are metadata sent along with an HTTP request. 
+    # Headers typically include details such as the type of content, authorization credentials, and other information required by the server.
+    # 'X-CMC_PRO_API_KEY' - A custom HTTP header. In this case, is specific to the CoinMarketCap API, and the X-CMC_PRO_API_KEY header is used to pass an API key for authentication.
     try:
         response = requests.get(url, headers=headers, params=params)
-        response.raise_for_status()  # Raise an error for HTTP issues
+        response.raise_for_status() # Raise an error for HTTP issues 
         data = response.json()
     except requests.RequestException as e:
         return {
@@ -164,7 +167,8 @@ def lambda_handler(event, context):
             },
             'body': json.dumps({'error': f"HTTP request failed: {str(e)}"})
         }
-    '''
+    
+        '''
         requests.get: Sends an HTTP GET request to the specified API endpoint (url).
 
         headers=headers: Includes authentication and metadata required by the API (e.g., the X-CMC_PRO_API_KEY header).
@@ -172,14 +176,13 @@ def lambda_handler(event, context):
         params=params: Contains additional parameters to pass with the API request, such as filtering data (e.g., specific cryptocurrencies, price data).
 
         response.json(): Converts the JSON response from the API into a Python dictionary for easier processing.
-    '''
+        '''
 
     # Parse the required information
     try:
         prices = {
             symbol: data['data'][symbol]['quote']['USD']['price']
-            for symbol in symbols.split(',') # symbols.split(',')  # Example: "BTC,ETH" -> ["BTC", "ETH"], Splits the symbols string (e.g., "BTC,ETH") into a list of individual symbols
-            if symbol in data['data']
+            for symbol in symbols.split(',') if symbol in data['data'] # Example: "BTC,ETH" -> ["BTC", "ETH"], Splits the symbols string (e.g., "BTC,ETH") into a list of individual symbols
         }
         return {
             'statusCode': 200,
@@ -188,7 +191,7 @@ def lambda_handler(event, context):
                 'Access-Control-Allow-Methods': 'GET,OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type,Authorization'
             },
-            'body': json.dumps({'prices': prices}) # Uses json.dumps to convert the prices dictionary into a JSON string for returning. 
+            'body': json.dumps({'prices': prices}) # Uses json.dumps to convert the prices dictionary into a JSON string for returning.  
         }
     except KeyError as e:
         return {
@@ -200,8 +203,9 @@ def lambda_handler(event, context):
             },
             'body': json.dumps({'error': f"Data parsing failed: {str(e)}"})
         }
-        
-'''
+    
+            
+        '''
         data['data']: Access the main data object in the response.
 
         [symbol]: Fetch details for the specific cryptocurrency (e.g., "BTC" or "ETH").
@@ -251,4 +255,5 @@ def lambda_handler(event, context):
 
         The symbol: part specifies what will be the key in the dictionary being created. Without it, Python would not know how to structure the key-value pairs.
 
-'''
+        '''
+        

@@ -4,9 +4,6 @@ Product Page: https://wwww.devcrud.com/
 
 Credits:
 
-    Demo Images:
-        Unsplash:       	(https://www.unsplash.com)
-
     Icons:
 		Themify Icons: 		(https://themify.me/themify-icons)
 
