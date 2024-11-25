@@ -6,7 +6,7 @@ data "archive_file" "crypto_api" {
   output_path = "${path.root}/crypto_api.zip"
 }
 
-output "zip_file_path" {
+output "crypto_api_path" {
   value = data.archive_file.crypto_api.output_path
 }
 
@@ -21,7 +21,7 @@ data "archive_file" "lambda_function" {
   output_path = "${path.root}/viewer_count.zip"
 }
 
-output "zip_file_path" {
+output "lambda_function_path" {
   value = data.archive_file.lambda_function.output_path
 }
 
@@ -35,7 +35,7 @@ data "archive_file" "SES_lambda" {
   output_path = "${path.root}/SES_lambda.zip"
 }
 
-output "zip_file_path" {
+output "SES_lambda_path" {
   value = data.archive_file.SES_lambda.output_path
 }
 
