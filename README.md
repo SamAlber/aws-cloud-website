@@ -24,33 +24,40 @@
    - [Domain Registration with Cloudflare](#domain-registration-with-cloudflare)
    - [DNS Zone Management](#dns-zone-management)
    - [SSL/TLS Integration with AWS ACM](#ssltls-integration-with-aws-acm)
-5. [RSA Encryption and CloudFront Signed URLs](#rsa-encryption-and-cloudfront-signed-urls)
+5. [RSA and ECDSA in SSL/TLS Encryption](#rsa-and-ecdsa-in-ssltls-encryption)
+   - [How ECDSA and Diffie-Hellman Work in This Project](#how-ecdsa-and-diffie-hellman-work-in-this-project)
+   - [Why ECDSA is Preferable to RSA in This Case](#why-ecdsa-is-preferable-to-rsa-in-this-case)
+6. [RSA Encryption and CloudFront Signed URLs](#rsa-encryption-and-cloudfront-signed-urls)
    - [How RSA Works in This Project](#how-rsa-works-in-this-project)
    - [Security Benefits](#security-benefits)
-6. [User Flow](#user-flow)
+7. [User Flow](#user-flow)
    - [1. Accessing the Website](#1-accessing-the-website)
    - [2. Using Dynamic Features](#2-using-dynamic-features)
-7. [Challenges and Solutions](#challenges-and-solutions)
+8. [Challenges and Solutions](#challenges-and-solutions)
    - [1. Handling CORS Issues](#1-handling-cors-issues)
    - [2. Managing Resource Dependencies in Terraform](#2-managing-resource-dependencies-in-terraform)
-8. [Code Analysis](#code-analysis)
+   - [3. Addressing Public Access Settings for S3 Buckets](#3-addressing-public-access-settings-for-s3-buckets)
+   - [4. Integrating SSL/TLS Certificates with ACM and CloudFront](#4-integrating-ssltls-certificates-with-acm-and-cloudfront)
+   - [5. Handling CloudFront Signed URLs with Origin Access Control (OAC)](#5-handling-cloudfront-signed-urls-with-origin-access-control-oac)
+   - [6. Managing Sensitive Data and Secrets](#6-managing-sensitive-data-and-secrets)
+9. [Code Analysis](#code-analysis)
    - [1. Lambda Functions](#1-lambda-functions)
      - [Visitor Counter Lambda Function](#visitor-counter-lambda-function)
      - [CV Request Lambda Function](#cv-request-lambda-function)
      - [Cryptocurrency Price Tracker Lambda Function](#cryptocurrency-price-tracker-lambda-function)
    - [2. Frontend JavaScript](#2-frontend-javascript)
-9. [Questions and Answers](#questions-and-answers)
-10. [Future Goals](#future-goals)
-11. [Additional Notes](#additional-notes)
+10. [Interview Questions and Answers](#interview-questions-and-answers)
+11. [Future Goals](#future-goals)
+12. [Additional Notes](#additional-notes)
     - [Understanding CORS and Preflight Requests](#understanding-cors-and-preflight-requests)
     - [Terraform Best Practices](#terraform-best-practices)
-12. [Contact Information](#contact-information)
+13. [Contact Information](#contact-information)
 
 ---
 
 ## **Project Overview**
 
-Welcome to my AWS Resume Website project! This is a hands-on endeavor where I've integrated modern cloud technologies, DevOps practices, and web security best practices to create a dynamic resume website. It not only showcases my resume but also includes interactive features like a cryptocurrency price tracker and a visitor counter.
+Welcome to my AWS Resume Website project! This is a comprehensive demonstration of integrating modern cloud technologies, DevOps practices, and web security best practices to create a dynamic resume website. It not only showcases my professional background but also includes interactive features like a cryptocurrency price tracker and a visitor counter, all built with scalability and security in mind.
 
 Check it out live at: [www.samuelalber.com](http://www.samuelalber.com)
 
@@ -63,7 +70,7 @@ Check it out live at: [www.samuelalber.com](http://www.samuelalber.com)
 
 2. **Dynamic Backend Functionalities**:
    - **Cryptocurrency Price Tracker**: Displays live cryptocurrency prices and logos fetched from an external API.
-   - **CV Request Feature**: Allows users to request a copy of my CV via email using **AWS SES** and provides a secure, time-limited download link.
+   - **CV Request Feature**: Allows users to request a copy of my CV via email using **AWS SES** and provides a secure, time-limited download link through **CloudFront Signed URLs**.
    - **Visitor Counter**: Tracks and displays the number of visitors using **DynamoDB** and **AWS Lambda**, showcasing real-time data updates.
 
 3. **Infrastructure as Code**:
@@ -76,9 +83,10 @@ Check it out live at: [www.samuelalber.com](http://www.samuelalber.com)
    - **CloudFront Origin Access Control (OAC)** restricts direct access to the S3 bucket, ensuring content is served only through CloudFront.
    - **AWS Certificate Manager (ACM)** is used for managing SSL/TLS certificates, providing secure HTTPS communication.
    - Sensitive data such as API keys and configuration parameters are securely stored in **AWS Systems Manager Parameter Store**.
+   - Utilized **ECDSA** and **ECDHE** cryptographic algorithms for enhanced security and performance.
 
 6. **Frontend**:
-   - **Template-Based Design**: The frontend was built using a pre-designed template, which I customized to suit my needs.
+   - **Template-Based Design**: The frontend was built using a professional template, which I customized extensively to suit my needs.
    - Utilized **HTML**, **CSS**, and **JavaScript** to provide an interactive and responsive user experience.
 
 ---
@@ -95,6 +103,7 @@ Check it out live at: [www.samuelalber.com](http://www.samuelalber.com)
 - **Amazon SES (Simple Email Service)**: Sends emails for CV requests.
 - **AWS ACM (Certificate Manager)**: Manages SSL/TLS certificates for secure communication.
 - **AWS SSM (Systems Manager) Parameter Store**: Secure storage for configuration data and secrets.
+- **AWS IAM (Identity and Access Management)**: Manages access permissions securely.
 
 ### **Other Services and Tools**
 
@@ -106,6 +115,11 @@ Check it out live at: [www.samuelalber.com](http://www.samuelalber.com)
 - **Terraform**: Infrastructure as Code tool used for provisioning and managing AWS resources.
 
 - **GitHub Actions**: Used for Continuous Integration and Deployment (CI/CD) to automate the frontend deployment process.
+
+- **Python Libraries**:
+  - **Boto3**: AWS SDK for Python to interact with AWS services.
+  - **RSA**: Used for generating and managing RSA keys for CloudFront signed URLs.
+  - **Requests**: For making HTTP requests to external APIs.
 
 ---
 
@@ -121,11 +135,12 @@ Check it out live at: [www.samuelalber.com](http://www.samuelalber.com)
 - **Dynamic Content with JavaScript**:
   - Implemented **JavaScript** to handle API calls and DOM manipulation.
   - Used **Fetch API** to retrieve data asynchronously from backend services.
+  - Ensured the site is responsive and interactive across different devices.
 
 ### **2. Backend Implementation**
 
 - **Programming Language**:
-  - All backend code, including Lambda functions, was written in **Python**.
+  - All backend code, including Lambda functions, was written in **Python 3.9** for its robust support and extensive libraries.
 
 #### **Handling S3 Bucket Configurations**
 
@@ -138,7 +153,7 @@ Check it out live at: [www.samuelalber.com](http://www.samuelalber.com)
 - **CORS Configuration**:
   - For the website bucket, set up CORS rules to allow GET requests from any origin:
     - This is crucial for allowing CloudFront to fetch content from S3 and serve it to different domains.
-    - Configured using `aws_s3_bucket_cors_configuration`.
+    - Configured using `aws_s3_bucket_cors_configuration` with appropriate allowed methods and headers.
 
 #### **IAM Roles and Policies**
 
@@ -149,6 +164,7 @@ Check it out live at: [www.samuelalber.com](http://www.samuelalber.com)
 
 - **Principal Types in Policies**:
   - Differentiated between service principals (e.g., `"Service": "lambda.amazonaws.com"`) and AWS principals (e.g., `"AWS": "arn:aws:iam::account-id:user/username"`).
+  - Ensured that only authorized entities have access to resources.
 
 #### **Lambda Functions and Layers**
 
@@ -206,7 +222,7 @@ Check it out live at: [www.samuelalber.com](http://www.samuelalber.com)
 
 - **Version Control**:
   - Stored Terraform code in a Git repository for versioning and collaboration.
-  - Ensured sensitive information is managed securely.
+  - Ensured sensitive information is managed securely and excluded from version control.
 
 ### **4. Continuous Integration and Deployment (CI/CD)**
 
@@ -217,7 +233,7 @@ Check it out live at: [www.samuelalber.com](http://www.samuelalber.com)
 
 - **Addressing Public Access Settings**:
   - Resolved issues with S3 bucket public access settings by adjusting bucket policies and removing unnecessary ACL configurations.
-  - Ensured that the `--acl public-read` flag was used appropriately in deployment scripts.
+  - Ensured that the `--acl private` flag was used appropriately in deployment scripts.
 
 ---
 
@@ -227,6 +243,7 @@ Check it out live at: [www.samuelalber.com](http://www.samuelalber.com)
 
 - **Purchase and Registration**:
   - Purchased `samuelalber.com` from **Cloudflare**, taking advantage of their competitive pricing and reliable services.
+  - Leveraged Cloudflare's user-friendly interface for domain management.
 
 ### **DNS Zone Management**
 
@@ -307,6 +324,61 @@ Check it out live at: [www.samuelalber.com](http://www.samuelalber.com)
 
 ---
 
+## **RSA and ECDSA in SSL/TLS Encryption**
+
+### **How ECDSA and Diffie-Hellman Work in This Project**
+
+- **SSL/TLS Handshake and Key Exchange**:
+  - When a user connects to `www.samuelalber.com` over HTTPS, an SSL/TLS handshake occurs between the user's browser and CloudFront.
+  - **Elliptic Curve Cryptography (ECC)** algorithms like **ECDSA** (Elliptic Curve Digital Signature Algorithm) and **ECDHE** (Elliptic Curve Diffie-Hellman Ephemeral) are used in modern SSL/TLS protocols.
+
+- **AWS ACM Certificates**:
+  - **AWS Certificate Manager (ACM)** issues SSL/TLS certificates that support both RSA and ECDSA algorithms.
+  - In this project, ACM provides certificates that enable the use of ECDSA during the handshake.
+
+- **ECDSA and ECDHE Usage**:
+  - **ECDSA** is used for digital signatures, ensuring the authenticity of the server.
+  - **ECDHE** is used for key exchange, allowing both parties to securely establish a shared secret key.
+
+- **Benefits of ECDSA and ECDHE**:
+  - **Performance**: ECC algorithms like ECDSA and ECDHE require smaller keys compared to RSA for equivalent security levels, resulting in faster computations.
+  - **Forward Secrecy**: ECDHE provides forward secrecy, meaning that even if the server's private key is compromised, past communications remain secure.
+  - **Enhanced Security**: Provides strong encryption and is widely supported in modern browsers and devices.
+
+### **Why ECDSA is Preferable to RSA in This Case**
+
+- **Security Strength**:
+  - **Equivalent Security with Smaller Keys**:
+    - ECDSA achieves the same level of security as RSA but with much smaller key sizes.
+    - For example, a 256-bit ECDSA key provides comparable security to a 3072-bit RSA key.
+  - **Resistance to Quantum Attacks**:
+    - While not quantum-proof, ECC is considered more resistant than RSA to certain types of attacks.
+
+- **Performance Benefits**:
+  - **Reduced Computational Load**:
+    - Smaller key sizes lead to faster cryptographic operations.
+    - This is particularly beneficial for servers handling a large number of SSL/TLS connections, reducing CPU usage and latency.
+  - **Bandwidth Efficiency**:
+    - **Smaller Certificates and Handshakes**:
+      - Smaller keys and signatures reduce the amount of data transmitted during the SSL/TLS handshake.
+      - Improves load times and reduces bandwidth consumption.
+
+- **Enhanced Security Features**:
+  - **Support for Forward Secrecy**:
+    - ECDHE enables forward secrecy, enhancing overall security.
+    - Protects past sessions against future compromises of secret keys.
+
+- **Industry Adoption**:
+  - Modern browsers and devices widely support ECDSA and ECDHE.
+  - Aligns with current best practices for web security.
+
+- **Application in This Project**:
+  - By leveraging ACM certificates that support ECDSA, the project benefits from improved performance and security.
+  - Ensures users experience fast and secure connections when accessing the website.
+  - Meets compliance requirements and enhances user trust.
+
+---
+
 ## **RSA Encryption and CloudFront Signed URLs**
 
 ### **How RSA Works in This Project**
@@ -338,6 +410,10 @@ Check it out live at: [www.samuelalber.com](http://www.samuelalber.com)
   - The RSA private key is securely stored in **AWS SSM Parameter Store**.
   - The public key is associated with a CloudFront key group, which CloudFront uses to verify the signature.
   - This separation ensures that even if the public key is exposed, the private key remains secure.
+
+- **Compliance and Best Practices**:
+  - Adheres to security best practices by implementing least privilege and secure key storage.
+  - Provides an audit trail and can be integrated with logging and monitoring services.
 
 ---
 
@@ -529,6 +605,167 @@ When you type `www.samuelalber.com` into your browser, here's what happens behin
   - Split Terraform configurations into modules and organized code for clarity.
   - Used `terraform.tfvars` for variable management.
 
+- **Outcome**:
+  - Ensured that resources were created in the correct order.
+  - Prevented deployment failures and improved the reliability of the infrastructure provisioning process.
+
+### **3. Addressing Public Access Settings for S3 Buckets**
+
+**Challenge**:
+
+- Faced issues with public access settings on S3 buckets, which led to deployment failures and potential security risks.
+- The default public access settings and ACL configurations were conflicting with the desired security posture.
+
+**Solution**:
+
+- **S3 Bucket Policies and ACLs**:
+  - Removed unnecessary ACL configurations and ensured that the S3 bucket ACL was set to `private`.
+  - Implemented `aws_s3_bucket_public_access_block` to block public ACLs and policies:
+    ```hcl
+    resource "aws_s3_bucket_public_access_block" "public_access_block" {
+      bucket = aws_s3_bucket.website_bucket.id
+      block_public_acls   = true
+      block_public_policy = true
+    }
+    ```
+- **Deployment Scripts Adjustments**:
+  - Ensured that the `--acl private` flag was used appropriately in deployment scripts where necessary.
+  - Reviewed and updated scripts to align with the bucket's public access configuration.
+
+- **Bucket Policy Updates**:
+  - Adjusted bucket policies to allow access only through CloudFront, using Origin Access Control (OAC).
+  - Prevented direct public access to the S3 bucket contents.
+
+- **Outcome**:
+  - Resolved deployment failures related to public access settings.
+  - Enhanced the security of the S3 buckets by preventing unintended public exposure.
+  - Aligned with best practices for S3 bucket security.
+
+### **4. Integrating SSL/TLS Certificates with ACM and CloudFront**
+
+**Challenge**:
+
+- Encountered difficulties in configuring SSL/TLS certificates for the domain and integrating them with CloudFront.
+- Issues arose with domain validation and ensuring that the certificates were correctly associated with the CloudFront distribution.
+
+**Solution**:
+
+- **Certificate Request and Validation**:
+  - Requested SSL/TLS certificates from AWS Certificate Manager (ACM) using Terraform:
+    ```hcl
+    resource "aws_acm_certificate" "cert_for_cloudflare_dns" {
+      domain_name       = "samuelalber.com"
+      validation_method = "DNS"
+      subject_alternative_names = ["www.samuelalber.com"]
+    }
+    ```
+  - Used DNS validation to prove domain ownership.
+
+- **Automating DNS Validation Records**:
+  - Added CNAME records provided by ACM to Cloudflare's DNS settings using Terraform.
+  - Ensured that the validation records were accurate and properly formatted.
+
+- **Associating Certificates with CloudFront**:
+  - Configured the CloudFront distribution to use the validated ACM certificate:
+    ```hcl
+    resource "aws_cloudfront_distribution" "cdn" {
+      viewer_certificate {
+        acm_certificate_arn            = aws_acm_certificate_validation.cert_validation.certificate_arn
+        ssl_support_method             = "sni-only"
+        minimum_protocol_version       = "TLSv1.2_2019"
+      }
+    }
+    ```
+- **Testing and Verification**:
+  - Verified that the SSL/TLS certificate was correctly applied by accessing the website over HTTPS.
+  - Used tools like SSL Labs to check the SSL/TLS configuration and certificate chain.
+
+- **Outcome**:
+  - Successfully secured the website with HTTPS.
+  - Ensured that all content is delivered securely to users.
+  - Enhanced user trust and met compliance standards.
+
+### **5. Handling CloudFront Signed URLs with Origin Access Control (OAC)**
+
+**Challenge**:
+
+- Needed to ensure that CloudFront signed URLs worked seamlessly with Origin Access Control (OAC) to securely serve private content from S3.
+- Faced issues where signed URLs were not providing access due to misconfigurations.
+
+**Solution**:
+
+- **Understanding the Interaction**:
+  - Recognized that when using OAC, CloudFront must be authorized to access the S3 bucket, and signed URLs must be correctly validated.
+
+- **Configuring S3 Bucket Policies**:
+  - Updated the S3 bucket policy to allow access from CloudFront using the OAC.
+    ```hcl
+    resource "aws_s3_bucket_policy" "s3_policy" {
+      bucket = aws_s3_bucket.website_bucket.id
+      policy = data.aws_iam_policy_document.s3_policy.json
+    }
+    ```
+  - Ensured that the policy grants access to the CloudFront origin identity.
+
+- **Adjusting CloudFront Distribution**:
+  - Configured the CloudFront distribution to use the key pair associated with the signed URLs.
+  - Verified that the trusted signers were correctly set.
+
+- **Testing Signed URLs**:
+  - Generated signed URLs in the Lambda function using the RSA private key.
+  - Tested the URLs to confirm that they provided access to the content as expected.
+
+- **Outcome**:
+  - Established a secure chain of trust between users, CloudFront, and S3.
+  - Ensured that signed URLs work correctly, allowing authorized users to access private content.
+  - Improved the overall security of content delivery.
+
+### **6. Managing Sensitive Data and Secrets**
+
+**Challenge**:
+
+- Needed to handle sensitive data such as API keys, RSA private keys, and AWS credentials securely.
+- Risked exposing secrets if not managed properly, which could lead to security breaches.
+
+**Solution**:
+
+- **AWS Systems Manager Parameter Store**:
+  - Stored sensitive parameters securely using AWS SSM Parameter Store with encryption at rest.
+  - Retrieved parameters within Lambda functions using the `boto3` client.
+
+- **IAM Role Permissions**:
+  - Granted least privilege permissions to Lambda functions to access only the necessary parameters.
+    ```hcl
+    resource "aws_iam_policy" "lambda_ssm_policy" {
+      policy = jsonencode({
+        "Version": "2012-10-17",
+        "Statement": [{
+          "Effect": "Allow",
+          "Action": [
+            "ssm:GetParameter",
+            "ssm:GetParameters"
+          ],
+          "Resource": [
+            "arn:aws:ssm:${var.region}:${var.account_id}:parameter/cloudfront/private_key",
+            "arn:aws:ssm:${var.region}:${var.account_id}:parameter/crypto/api_key"
+          ]
+        }]
+      })
+    }
+    ```
+- **Avoiding Hardcoding Secrets**:
+  - Ensured that no sensitive information was hardcoded in the codebase or Terraform configurations.
+  - Used environment variables and parameter retrieval at runtime.
+
+- **Securing AWS Credentials**:
+  - Managed AWS credentials securely when configuring GitHub Actions for CI/CD.
+  - Used GitHub Secrets to store AWS access keys and avoided exposing them in logs or code.
+
+- **Outcome**:
+  - Protected sensitive information from unauthorized access.
+  - Complied with best practices for secret management and enhanced the overall security posture.
+  - Reduced the risk of security incidents and maintained compliance.
+
 ---
 
 ## **Code Analysis**
@@ -565,11 +802,20 @@ When you type `www.samuelalber.com` into your browser, here's what happens behin
       primary_key = "page_views"
       # Get current count
       response = table.get_item(Key={'counter_id': primary_key})
+      current_count = int(response.get('Item', {}).get('view_count', 0))
       # Increment count
       new_count = current_count + 1
       # Update count in DynamoDB
       table.put_item(Item={'counter_id': primary_key, 'view_count': new_count})
       # Return response with CORS headers
+      return {
+          'statusCode': 200,
+          'headers': {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET,OPTIONS',
+          },
+          'body': json.dumps({'view_count': new_count})
+      }
   ```
 
 - **CORS Headers**:
@@ -580,11 +826,14 @@ When you type `www.samuelalber.com` into your browser, here's what happens behin
 
 - **Decimal Conversion**:
   - DynamoDB returns numbers as `Decimal` objects.
-  - Converted to `int` using `int()` to ensure JSON serialization.
+  - Converted to `int()` to ensure JSON serialization.
 
 - **Full Item Replacement with `put_item`**:
   - `put_item` replaces the entire item.
   - Must specify all attributes to avoid data loss.
+
+- **Concurrency Handling**:
+  - In a production environment, consider using conditional writes or atomic counters to handle concurrency.
 
 #### **CV Request Lambda Function**
 
@@ -639,6 +888,11 @@ When you type `www.samuelalber.com` into your browser, here's what happens behin
 - **Security Considerations**:
   - Stores private keys securely.
   - Validates email input to prevent misuse.
+  - Sanitizes inputs to prevent injection attacks.
+
+- **Email Sending with SES**:
+  - Configured SES to have verified sender identities.
+  - Complied with SES policies to prevent spam.
 
 #### **Cryptocurrency Price Tracker Lambda Function**
 
@@ -658,17 +912,29 @@ When you type `www.samuelalber.com` into your browser, here's what happens behin
   - Retrieves API key securely from SSM.
 
 - **Lambda Handler**:
-  - Parses query parameters or JSON body to get symbols.
-  - Makes an external API call to fetch prices.
-  - Handles exceptions and returns data with CORS headers.
+  ```python
+  def lambda_handler(event, context):
+      # Parse symbols from query parameters
+      symbols = event.get('queryStringParameters', {}).get('symbols', 'BTC,ETH')
+      # Fetch API key from SSM
+      api_key = get_parameter('/crypto/api_key')
+      # Make external API call
+      response = requests.get(API_ENDPOINT, headers={'X-CMC_PRO_API_KEY': api_key}, params={'symbol': symbols})
+      data = response.json()
+      # Parse and return prices
+      prices = {symbol: data['data'][symbol]['quote']['USD']['price'] for symbol in symbols.split(',') if symbol in data['data']}
+      return {
+          'statusCode': 200,
+          'headers': {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET,OPTIONS',
+          },
+          'body': json.dumps(prices)
+      }
+  ```
 
 - **Response Parsing**:
-  ```python
-  prices = {
-      symbol: data['data'][symbol]['quote']['USD']['price']
-      for symbol in symbols.split(',') if symbol in data['data']
-  }
-  ```
+  - Extracts price information and formats it for the frontend.
 
 **Notes**:
 
@@ -678,6 +944,9 @@ When you type `www.samuelalber.com` into your browser, here's what happens behin
 
 - **Default Symbols**:
   - Uses 'BTC,ETH' as default if no symbols are provided.
+
+- **API Rate Limits**:
+  - Be mindful of the external API's rate limits and handle HTTP status codes accordingly.
 
 ### **2. Frontend JavaScript**
 
@@ -701,6 +970,21 @@ When you type `www.samuelalber.com` into your browser, here's what happens behin
   - Uses `async/await` to handle the fetch operation.
   - Ensures the counter updates after data is retrieved.
 
+- **Fetch Request**:
+  ```javascript
+  async function updateCounter() {
+      const response = await fetch(API_ENDPOINT);
+      const data = await response.json();
+      // Update DOM
+  }
+  ```
+
+**Notes**:
+
+- **Error Handling**:
+  - Includes try-catch blocks to handle network errors.
+  - Provides fallback messages if the count cannot be retrieved.
+
 #### **Cryptocurrency Price Tracker Script**
 
 **Purpose**:
@@ -722,6 +1006,16 @@ When you type `www.samuelalber.com` into your browser, here's what happens behin
 - **Error Handling**:
   - Logs errors to the console and handles cases where data is missing.
 
+**Notes**:
+
+- **Data Formatting**:
+  - Formats prices to two decimal places.
+  - Ensures that logos and symbols are matched correctly.
+
+- **User Experience**:
+  - Provides loading indicators while data is being fetched.
+  - Updates content smoothly to enhance user engagement.
+
 #### **CV Request Script**
 
 **Purpose**:
@@ -734,8 +1028,18 @@ When you type `www.samuelalber.com` into your browser, here's what happens behin
   ```javascript
   async function sendEmailRequest() {
       // Validate email
+      const email = document.getElementById('email').value;
+      if (!validateEmail(email)) {
+          // Show error message
+          return;
+      }
       // Send POST request to API Gateway
-      // Update status messages
+      const response = await fetch(API_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+      });
+      // Handle response
   }
   ```
 
@@ -744,12 +1048,23 @@ When you type `www.samuelalber.com` into your browser, here's what happens behin
 
 - **User Feedback**:
   - Updates the status message on the page to inform the user of success or errors.
+  - Clears input fields after submission.
+
+**Notes**:
+
+- **Accessibility**:
+  - Ensures that the form is accessible to users with disabilities.
+  - Uses semantic HTML and ARIA attributes where appropriate.
+
+- **Security**:
+  - Sanitizes user input to prevent injection attacks.
+  - Does not expose sensitive endpoints or data in the frontend code.
 
 ---
 
-## **Questions and Answers**
+## **Interview Questions and Answers**
 
-Here are some potential questions that may arise along with detailed answers:
+Based on the experiences and knowledge gained from this project, here are some potential interview questions and detailed answers:
 
 ### **1. What AWS services are you familiar with, and how did you use them in your project?**
 
@@ -865,7 +1180,7 @@ In my project, while it's primarily serverless and doesn't use EC2 instances or 
 
 By understanding how DNS works, I ensured that users could reliably access my website and that secure connections were established.
 
-### **5. Explain CICD automation and how you implemented it in your project.**
+### **5. Explain CI/CD automation and how you implemented it in your project.**
 
 **Answer:**
 
@@ -1060,9 +1375,9 @@ By carefully managing IAM roles and policies, I ensured secure and efficient acc
 
 ## **Contact Information**
 
-- **Email**: [sam.albershtein@gmail.com](sam.albershtein@gmail.com)
-- **LinkedIn**: [linkedin.com](https://www.linkedin.com/in/samuel-albershtein-ba82931a0/)
-- **GitHub**: [github.com](https://github.com/SamAlber)
+- **Email**: [sam.albershtein@gmail.com](mailto:sam.albershtein@gmail.com)
+- **LinkedIn**: [linkedin.com/in/samuel-albershtein-ba82931a0/](https://www.linkedin.com/in/samuel-albershtein-ba82931a0/)
+- **GitHub**: [github.com/SamAlber](https://github.com/SamAlber)
 
 Thank you for taking the time to explore my project! If you have any feedback or ideas for collaboration, I'd love to hear from you. Feel free to reach out via the contact information on my website.
 

@@ -1,11 +1,23 @@
-terraform/.terraform/    
 
+# Terraform state files
 terraform/terraform.tfstate  
-
 terraform/terraform.tfstate.backup
 
+# Terraform working directory
+terraform/.terraform/    
+
+# Lock file (optional)
+.terraform.lock.hcl
+
+# Temporary or build artifacts
+/terraform/*.zip
 terraform/CV.pdf 
 
+# Sensitive variable files
 terraform/terraform.tfvars
 
+# System files
 notes.txt
+
+# Never commit terraform.tfstate or terraform.tfvars: These can contain secrets or sensitive information.
+# If you accidentally committed sensitive files (e.g., terraform.tfstate), remove them from your Git history using a tool like git filter-repo or git rm --cached.
