@@ -443,7 +443,7 @@ There’s no need for caching or CDN benefits for .tfstate files.
 
 
 
-# SUUUUUUUUPER IMPORTANT TO ADD ALL DEPENDS ON INTEGRATIONS!!!!!!!!! (WE HAD BIG PROBLEMS WITH THE API GATEWAY NOT BEING ABLE TO CONTACT THE CRYPTO LAMBDA)
+# SUUUUUUUUPER IMPORTANT TO ADD ALL DEPENDS ON INTEGRATIONS!!!!!!!!! (WE HAD BIG PROBLEMS WITH THE API GATEWAY NOT BEING ABLE TO create a method GET/POST in THE CRYPTO LAMBDA)
 # API Deployment (remove 'stage_name' attribute)
 resource "aws_api_gateway_deployment" "api_deployment" {
   depends_on = [

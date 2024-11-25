@@ -1,6 +1,52 @@
 # AWS Resume Website
 
-![Architecture](https://github.com/SamAlber/aws-cloud-website/blob/main/website/assets/imgs/architecture.png)
+![Architecture](https://github.com/SamAlber/aws-cloud-website/blob/283b6ba38074c5543b2523ca78dd6659aaf867de/frontend/assets/imgs/architecture.png)
+
+## **Table of Contents**
+
+1. [Project Overview](#project-overview)
+   - [Key Features](#key-features)
+2. [Services and Tools Used](#services-and-tools-used)
+   - [AWS Services](#aws-services)
+   - [Other Services and Tools](#other-services-and-tools)
+3. [Development Flow](#development-flow)
+   - [1. Frontend Development](#1-frontend-development)
+   - [2. Backend Implementation](#2-backend-implementation)
+     - [Handling S3 Bucket Configurations](#handling-s3-bucket-configurations)
+     - [IAM Roles and Policies](#iam-roles-and-policies)
+     - [Lambda Functions and Layers](#lambda-functions-and-layers)
+     - [CloudFront and S3 Integration](#cloudfront-and-s3-integration)
+     - [API Gateway and Lambda Integration](#api-gateway-and-lambda-integration)
+     - [Terraform State Management](#terraform-state-management)
+   - [3. Infrastructure Automation](#3-infrastructure-automation)
+   - [4. Continuous Integration and Deployment (CI/CD)](#4-continuous-integration-and-deployment-cicd)
+4. [Domain Purchase, DNS Zone, and SSL/TLS Configuration](#domain-purchase-dns-zone-and-ssltls-configuration)
+   - [Domain Registration with Cloudflare](#domain-registration-with-cloudflare)
+   - [DNS Zone Management](#dns-zone-management)
+   - [SSL/TLS Integration with AWS ACM](#ssltls-integration-with-aws-acm)
+5. [RSA Encryption and CloudFront Signed URLs](#rsa-encryption-and-cloudfront-signed-urls)
+   - [How RSA Works in This Project](#how-rsa-works-in-this-project)
+   - [Security Benefits](#security-benefits)
+6. [User Flow](#user-flow)
+   - [1. Accessing the Website](#1-accessing-the-website)
+   - [2. Using Dynamic Features](#2-using-dynamic-features)
+7. [Challenges and Solutions](#challenges-and-solutions)
+   - [1. Handling CORS Issues](#1-handling-cors-issues)
+   - [2. Managing Resource Dependencies in Terraform](#2-managing-resource-dependencies-in-terraform)
+8. [Code Analysis](#code-analysis)
+   - [1. Lambda Functions](#1-lambda-functions)
+     - [Visitor Counter Lambda Function](#visitor-counter-lambda-function)
+     - [CV Request Lambda Function](#cv-request-lambda-function)
+     - [Cryptocurrency Price Tracker Lambda Function](#cryptocurrency-price-tracker-lambda-function)
+   - [2. Frontend JavaScript](#2-frontend-javascript)
+9. [Interview Questions and Answers](#interview-questions-and-answers)
+10. [Future Goals](#future-goals)
+11. [Additional Notes](#additional-notes)
+    - [Understanding CORS and Preflight Requests](#understanding-cors-and-preflight-requests)
+    - [Terraform Best Practices](#terraform-best-practices)
+12. [Contact Information](#contact-information)
+
+---
 
 ## **Project Overview**
 
@@ -396,7 +442,7 @@ When you type `www.samuelalber.com` into your browser, here's what happens behin
 
 ## **Challenges and Solutions**
 
-### **1. Handling CORS (Cross-Origin Resource Sharing) Issues**
+### **1. Handling CORS Issues**
 
 **Challenge**:
 
@@ -701,6 +747,248 @@ When you type `www.samuelalber.com` into your browser, here's what happens behin
 
 ---
 
+## **Interview Questions and Answers**
+
+Based on experiences shared by others who have completed similar projects, here are some potential interview questions and detailed answers:
+
+### **1. What AWS services are you familiar with, and how did you use them in your project?**
+
+**Answer:**
+
+I am familiar with a range of AWS services, many of which I utilized in this project:
+
+- **Amazon S3**: Used for hosting the static website content. It stores HTML, CSS, JavaScript, and image files.
+
+- **Amazon CloudFront**: Configured as a CDN to distribute content globally with low latency. It improves performance by caching content at edge locations.
+
+- **AWS Lambda**: Deployed serverless functions written in Python to handle backend logic, such as:
+
+  - **Visitor Counter**: Increments and retrieves visitor counts using DynamoDB.
+  - **CV Request Handler**: Generates signed URLs and sends emails via SES.
+  - **Cryptocurrency Price Tracker**: Fetches real-time crypto prices from an external API.
+
+- **Amazon API Gateway**: Exposed RESTful endpoints for the Lambda functions, enabling the frontend to interact with the backend services securely.
+
+- **Amazon DynamoDB**: Served as a NoSQL database to store visitor counts efficiently and scalably.
+
+- **Amazon SES (Simple Email Service)**: Sent emails containing secure links to download my CV.
+
+- **AWS Certificate Manager (ACM)**: Managed SSL/TLS certificates to ensure secure HTTPS communication between clients and CloudFront.
+
+- **AWS Systems Manager Parameter Store**: Stored sensitive information like API keys and RSA private keys securely.
+
+- **IAM Roles and Policies**: Managed permissions and access controls, adhering to the principle of least privilege.
+
+By integrating these services, I built a scalable, secure, and efficient application that demonstrates practical cloud engineering skills.
+
+### **2. Can you explain the difference between public and private subnets and their significance in cloud architecture?**
+
+**Answer:**
+
+**Public Subnets**:
+
+- **Definition**: A subnet whose associated route table directs traffic to the internet through an internet gateway.
+- **Accessibility**: Resources in a public subnet can have public IP addresses, making them directly accessible from the internet.
+- **Use Cases**: Hosting public-facing services like web servers, bastion hosts, or NAT gateways.
+
+**Private Subnets**:
+
+- **Definition**: A subnet that doesn't route traffic directly to the internet; it may use a NAT gateway or VPN connection for outbound traffic.
+- **Accessibility**: Resources in a private subnet are not directly accessible from the internet, enhancing security.
+- **Use Cases**: Hosting backend services like databases, application servers, or sensitive data processing.
+
+**Significance in Cloud Architecture**:
+
+- **Security**: Segregating resources into public and private subnets helps protect sensitive components from direct internet exposure.
+- **Scalability**: Allows for better control over network traffic and scaling of different layers independently.
+- **Compliance**: Meets regulatory requirements by isolating critical data and services.
+
+In my project, although I primarily used serverless services that abstract away infrastructure management, understanding subnets is crucial for designing secure and efficient architectures, especially in VPC-based deployments.
+
+### **3. Describe a 3-tier architecture and how you might implement it in AWS.**
+
+**Answer:**
+
+A 3-tier architecture separates an application into three layers:
+
+1. **Presentation Tier (Frontend)**:
+   - **Function**: User interface that interacts with users.
+   - **AWS Implementation**: Amazon S3 for static website hosting, Amazon CloudFront for content delivery.
+
+2. **Application Tier (Logic)**:
+   - **Function**: Processes data, applies business logic.
+   - **AWS Implementation**: AWS Lambda functions, Amazon EC2 instances, or AWS Elastic Beanstalk.
+
+3. **Data Tier (Database)**:
+   - **Function**: Stores and manages data.
+   - **AWS Implementation**: Amazon RDS for relational databases, Amazon DynamoDB for NoSQL databases.
+
+**Implementation in AWS**:
+
+- **Frontend**: Host static content on S3, use CloudFront for CDN, and Route 53 for DNS.
+- **Application Layer**: Deploy APIs using API Gateway and Lambda (serverless) or run applications on EC2 instances within an Auto Scaling group.
+- **Data Layer**: Use RDS for structured data requiring relational integrity or DynamoDB for scalable NoSQL storage.
+
+**Benefits**:
+
+- **Scalability**: Each layer can scale independently based on demand.
+- **Maintainability**: Easier to update or modify individual layers without affecting others.
+- **Security**: Layers can be isolated using security groups and subnets.
+
+In my project, while it's primarily serverless and doesn't use EC2 instances or VPCs, the principles of a 3-tier architecture are reflected in separating concerns between frontend, backend logic, and data storage.
+
+### **4. How does DNS work, and how did you apply that knowledge in your project?**
+
+**Answer:**
+
+**How DNS Works**:
+
+- **Domain Name System (DNS)** translates human-readable domain names (e.g., `www.samuelalber.com`) into IP addresses that computers use to identify each other on the network.
+- **Resolution Process**:
+  1. **Recursive Resolver**: Client queries a recursive resolver (ISP or public DNS).
+  2. **Root Servers**: Resolver asks root DNS servers for the TLD (e.g., `.com`).
+  3. **TLD Servers**: Provides the authoritative name servers for the domain.
+  4. **Authoritative Name Server**: Returns the DNS records (e.g., A, CNAME) for the domain.
+
+**Application in My Project**:
+
+- **Domain Registration**: Purchased `samuelalber.com` through Cloudflare.
+- **DNS Management**:
+  - Configured DNS records in Cloudflare to point to the CloudFront distribution.
+  - Used CNAME records for `www.samuelalber.com` and `samuelalber.com` pointing to the CloudFront domain.
+- **SSL/TLS Certificate Validation**:
+  - Added CNAME records in Cloudflare for DNS validation of ACM certificates.
+- **Understanding DNS Propagation**:
+  - Accounted for TTL and potential delays in DNS record updates.
+- **Troubleshooting**:
+  - Used knowledge of DNS to resolve issues with domain resolution and SSL certificates.
+
+By understanding how DNS works, I ensured that users could reliably access my website and that secure connections were established.
+
+### **5. Explain CICD automation and how you implemented it in your project.**
+
+**Answer:**
+
+**CI/CD Automation**:
+
+- **Continuous Integration (CI)**: Practice of automating the integration of code changes from multiple contributors into a single software project. Involves automated testing and building.
+- **Continuous Deployment/Delivery (CD)**: Automates the release of validated code to a production environment. Ensures that software can be reliably released at any time.
+
+**Implementation in My Project**:
+
+- **GitHub Actions**:
+  - Set up a workflow triggered by pushes to the main branch.
+  - **Steps**:
+    - **Checkout Code**: Retrieves the latest code from the repository.
+    - **Build Process**: If necessary, runs build scripts (e.g., compiling assets).
+    - **Deploy to S3**:
+      - Uses AWS CLI to sync the website files to the S3 bucket hosting the frontend.
+      - Ensures that the S3 bucket content is up-to-date with the latest code.
+    - **Invalidate CloudFront Cache**:
+      - Sends a command to invalidate cached content, so users receive the latest version.
+- **AWS Credentials**:
+  - Managed securely using GitHub Secrets to store AWS access keys.
+- **Benefits**:
+  - **Automation**: Reduces manual effort and potential for errors.
+  - **Speed**: Allows for rapid deployment of updates.
+  - **Consistency**: Ensures that each deployment follows the same process.
+
+By implementing CI/CD, I streamlined the development workflow, allowing for efficient and reliable updates to the website.
+
+### **6. How did you use serverless architecture in your project, and what are its benefits?**
+
+**Answer:**
+
+**Use of Serverless Architecture**:
+
+- **AWS Lambda**:
+  - Deployed backend logic as Lambda functions, handling:
+    - Visitor counting.
+    - CV request processing.
+    - Cryptocurrency price fetching.
+- **API Gateway**:
+  - Created RESTful APIs that trigger Lambda functions in response to HTTP requests.
+- **Benefits of Serverless**:
+  - **Scalability**: Automatically scales with demand without manual intervention.
+  - **Cost-Effectiveness**: Pay only for compute time used; no charges when functions are idle.
+  - **Reduced Operational Overhead**: No need to manage servers or infrastructure.
+  - **Quick Deployment**: Faster to deploy and update code.
+
+**Benefits in My Project**:
+
+- **Efficiency**: Focused on writing code rather than managing servers.
+- **Performance**: Achieved low-latency responses due to AWS's optimized infrastructure.
+- **Reliability**: Leveraged AWS's high availability for Lambda functions.
+
+By adopting serverless architecture, I built a responsive and scalable backend that complements the static frontend hosted on S3.
+
+### **7. How does your website handle scalability, and how did you use S3 and CloudFront to improve performance?**
+
+**Answer:**
+
+**Handling Scalability**:
+
+- **Amazon S3**:
+  - Designed to handle virtually unlimited concurrent requests.
+  - Automatically scales to accommodate traffic spikes.
+- **Amazon CloudFront**:
+  - Distributes content through a global network of edge locations.
+  - Caches content closer to users, reducing load on the origin server (S3).
+
+**Improving Performance**:
+
+- **Reduced Latency**:
+  - CloudFront delivers content from the nearest edge location to the user.
+- **Offloading Origin Traffic**:
+  - Frequent requests are served from the cache, minimizing S3 data transfer and reducing costs.
+- **High Availability**:
+  - Both S3 and CloudFront are highly available services with built-in redundancy.
+
+**Benefits**:
+
+- **Scalability**: The combination can handle sudden increases in traffic without degradation.
+- **Cost Efficiency**: Reduced data transfer costs and efficient caching.
+- **User Experience**: Faster page load times improve user satisfaction.
+
+By leveraging S3 and CloudFront, my website is prepared to serve content quickly to users worldwide, regardless of traffic volume.
+
+### **8. Can you explain how you managed IAM roles and policies in your project?**
+
+**Answer:**
+
+**IAM Roles and Policies Management**:
+
+- **Principle of Least Privilege**:
+  - Granted only the necessary permissions required for each service or function.
+- **IAM Roles for Lambda Functions**:
+  - Created specific roles for each Lambda function.
+  - Attached policies that allow access to required services (e.g., DynamoDB, SES, SSM Parameter Store).
+- **Policy Types**:
+  - **Managed Policies**: Used AWS-managed policies when appropriate.
+  - **Custom Policies**: Wrote custom policies for specific permissions.
+- **Assume Role Policy**:
+  - Configured `sts:AssumeRole` in the role's trust policy to allow Lambda to assume the role.
+- **Resource-Based Policies**:
+  - Applied to services like S3 to control access from specific sources (e.g., CloudFront).
+
+**Example**:
+
+- **Lambda Role for CV Request Function**:
+  - Permissions to:
+    - Send emails via SES.
+    - Access parameters in SSM Parameter Store.
+  - Trust relationship allowing Lambda service to assume the role.
+
+**Benefits**:
+
+- **Security**: Minimizes the risk of unauthorized access.
+- **Auditability**: Clear policies make it easier to review and audit permissions.
+- **Scalability**: Roles can be reused or modified as the project grows.
+
+By carefully managing IAM roles and policies, I ensured secure and efficient access control across AWS services in the project.
+
+---
+
 ## **Future Goals**
 
 - **Portfolio Expansion**:
@@ -723,13 +1011,9 @@ When you type `www.samuelalber.com` into your browser, here's what happens behin
 
 ---
 
-Thank you for taking the time to explore my project! If you have any feedback or ideas for collaboration, I'd love to hear from you. Feel free to reach out via the contact information on my website.
+## **Additional Notes**
 
----
-
-# **Additional Notes**
-
-## **Understanding CORS and Preflight Requests**
+### **Understanding CORS and Preflight Requests**
 
 - **CORS Configuration**:
   - In the context of AWS Lambda and API Gateway, when using AWS_PROXY integrations, the Lambda function must handle CORS, including OPTIONS preflight requests.
@@ -744,7 +1028,7 @@ Thank you for taking the time to explore my project! If you have any feedback or
   - If the server responds with the appropriate headers indicating permission, the browser proceeds with the actual request.
   - This mechanism prevents unauthorized cross-origin requests that could compromise security.
 
-## **Terraform Best Practices**
+### **Terraform Best Practices**
 
 - **Resource Comments**:
   - Included detailed comments in Terraform code to explain the purpose of configurations and any important considerations.
@@ -771,5 +1055,15 @@ Thank you for taking the time to explore my project! If you have any feedback or
 
 - **Using Random Suffixes for Bucket Names**:
   - Implemented random strings to ensure uniqueness of S3 bucket names, as bucket names are globally unique.
+
+---
+
+## **Contact Information**
+
+- **Email**: [your.email@example.com](sam.albershtein@gmail.com)
+- **LinkedIn**: [linkedin.com](https://www.linkedin.com/in/samuel-albershtein-ba82931a0/)
+- **GitHub**: [github.com](https://github.com/SamAlber)
+
+Thank you for taking the time to explore my project! If you have any feedback or ideas for collaboration, I'd love to hear from you. Feel free to reach out via the contact information on my website.
 
 ---
