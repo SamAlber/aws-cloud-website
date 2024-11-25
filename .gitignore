@@ -1,11 +1,11 @@
-.terraform/    
+terraform/.terraform/    
 
-terraform.tfstate  
+terraform/terraform.tfstate  
 
-terraform.tfstate.backup
+terraform/terraform.tfstate.backup
 
-CV.pdf 
+terraform/CV.pdf 
 
-terraform.tfvars
+terraform/terraform.tfvars
 
 notes.txt

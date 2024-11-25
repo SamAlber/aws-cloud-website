@@ -39,7 +39,7 @@
      - [CV Request Lambda Function](#cv-request-lambda-function)
      - [Cryptocurrency Price Tracker Lambda Function](#cryptocurrency-price-tracker-lambda-function)
    - [2. Frontend JavaScript](#2-frontend-javascript)
-9. [Interview Questions and Answers](#interview-questions-and-answers)
+9. [Questions and Answers](#questions-and-answers)
 10. [Future Goals](#future-goals)
 11. [Additional Notes](#additional-notes)
     - [Understanding CORS and Preflight Requests](#understanding-cors-and-preflight-requests)
@@ -747,9 +747,9 @@ When you type `www.samuelalber.com` into your browser, here's what happens behin
 
 ---
 
-## **Interview Questions and Answers**
+## **Questions and Answers**
 
-Based on experiences shared by others who have completed similar projects, here are some potential interview questions and detailed answers:
+Here are some potential questions that may arise along with detailed answers:
 
 ### **1. What AWS services are you familiar with, and how did you use them in your project?**
 
@@ -1060,7 +1060,7 @@ By carefully managing IAM roles and policies, I ensured secure and efficient acc
 
 ## **Contact Information**
 
-- **Email**: [your.email@example.com](sam.albershtein@gmail.com)
+- **Email**: [sam.albershtein@gmail.com](sam.albershtein@gmail.com)
 - **LinkedIn**: [linkedin.com](https://www.linkedin.com/in/samuel-albershtein-ba82931a0/)
 - **GitHub**: [github.com](https://github.com/SamAlber)
 
