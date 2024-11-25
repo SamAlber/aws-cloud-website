@@ -389,7 +389,7 @@ resource "aws_lambda_function" "ses_lambda" {
 
 # Lambda Layer Resource
 resource "aws_lambda_layer_version" "rsa_layer" {
-  filename            = "lambda_layer.zip"
+  filename            = "rsa_layer.zip"
   layer_name          = "rsa_dependency_layer"
   compatible_runtimes = ["python3.9"] # Adjust if you're using a different Python version
   description         = "Lambda Layer containing the rsa library"
