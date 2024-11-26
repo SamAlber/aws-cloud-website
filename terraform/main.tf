@@ -154,8 +154,8 @@ resource "aws_s3_bucket" "cv_bucket" {
 # Upload CV File to S3
 resource "aws_s3_object" "cv_file" {
   bucket       = aws_s3_bucket.cv_bucket.id
-  key          = "cv.pdf"
-  source       = "CV.pdf" # Ensure this file exists in your working directory
+  key          = "CV-SamuelAlbershtein.pdf"
+  source       = "CV-SamuelAlbershtein.pdf" # Ensure this file exists in your working directory
   content_type = "application/pdf"
 }
 
@@ -374,7 +374,7 @@ resource "aws_lambda_function" "ses_lambda" {
   environment {
     variables = {
       SENDER_EMAIL   = aws_ses_email_identity.verified_sender.email
-      CLOUDFRONT_URL = "https://${aws_cloudfront_distribution.cdn.domain_name}/cv.pdf"
+      CLOUDFRONT_URL = "https://${aws_cloudfront_distribution.cdn.domain_name}/CV-SamuelAlbershtein.pdf"
     }
   }
 
@@ -389,7 +389,7 @@ resource "aws_lambda_function" "ses_lambda" {
 
 # Lambda Layer Resource
 resource "aws_lambda_layer_version" "rsa_layer" {
-  filename            = "rsa_layer.zip"
+  filename            = "rsa-layer.zip"
   layer_name          = "rsa_dependency_layer"
   compatible_runtimes = ["python3.9"] # Adjust if you're using a different Python version
   description         = "Lambda Layer containing the rsa library"
@@ -501,7 +501,7 @@ A secure and functional integration between CloudFront Signed URLs and your S3 b
   }
 
   ordered_cache_behavior {
-    path_pattern           = "cv.pdf"
+    path_pattern           = "CV-SamuelAlbershtein.pdf"
     allowed_methods        = ["GET", "HEAD"]
     cached_methods         = ["GET", "HEAD"]
     target_origin_id       = "S3-${aws_s3_bucket.cv_bucket.id}"
