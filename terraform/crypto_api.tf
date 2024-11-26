@@ -10,7 +10,7 @@ resource "aws_ssm_parameter" "lambda_btc_api_token" {
 
 # ------------------------- Crypto API lambda + iam role from main.tf ------------------------- #
 
-resource "aws_lambda_function" "crypto_api_function" { 
+resource "aws_lambda_function" "crypto_api_function" {
   filename      = "crypto_api.zip"
   function_name = "crypto_api"
   role          = aws_iam_role.lambda_role.arn

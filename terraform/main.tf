@@ -167,13 +167,13 @@ resource "aws_s3_bucket_policy" "cv_bucket_policy" {
     Version = "2012-10-17",
     Statement = [
       {
-        Sid       = "AllowCloudFrontAccess",
-        Effect    = "Allow",
+        Sid    = "AllowCloudFrontAccess",
+        Effect = "Allow",
         Principal = {
           Service = "cloudfront.amazonaws.com"
         },
-        Action    = "s3:GetObject",
-        Resource  = "arn:aws:s3:::${aws_s3_bucket.cv_bucket.id}/*"
+        Action   = "s3:GetObject",
+        Resource = "arn:aws:s3:::${aws_s3_bucket.cv_bucket.id}/*"
         Condition = { # Optional but nice to have (can open the cv even without it) but it's not best practive because all distributions will be able to access with the signed key. 
           StringEquals = {
             "AWS:SourceArn" = aws_cloudfront_distribution.cdn.arn
@@ -410,16 +410,16 @@ resource "aws_cloudfront_distribution" "cdn" {
   origin {
     domain_name              = aws_s3_bucket.website_bucket.bucket_regional_domain_name
     origin_id                = "S3-${aws_s3_bucket.website_bucket.id}"
-    origin_access_control_id = aws_cloudfront_origin_access_control.oac.id 
+    origin_access_control_id = aws_cloudfront_origin_access_control.oac.id
   }
 
   origin {
-    domain_name = aws_s3_bucket.cv_bucket.bucket_regional_domain_name
-    origin_id   = "S3-${aws_s3_bucket.cv_bucket.id}"
+    domain_name              = aws_s3_bucket.cv_bucket.bucket_regional_domain_name
+    origin_id                = "S3-${aws_s3_bucket.cv_bucket.id}"
     origin_access_control_id = aws_cloudfront_origin_access_control.oac.id # Without this even with the generated signature we won't be able to access (Access denied) - explanation below. 
   }
 
-/*
+  /*
 What is origin_access_control_id?
 This parameter links your CloudFront distribution to an Origin Access Control (OAC). OAC is a mechanism that:
 
@@ -628,7 +628,7 @@ resource "aws_api_gateway_method" "viewer_count_get" {
   authorization = "NONE"
 }
 
-resource "aws_api_gateway_integration" "lambda_integration" { 
+resource "aws_api_gateway_integration" "lambda_integration" {
   rest_api_id             = aws_api_gateway_rest_api.viewer_count_api.id
   resource_id             = aws_api_gateway_resource.viewer_count_resource.id
   http_method             = aws_api_gateway_method.viewer_count_get.http_method
@@ -668,7 +668,7 @@ resource "aws_api_gateway_method" "send_cv_method" {
 resource "aws_api_gateway_integration" "send_cv_post_integration" {
   rest_api_id             = aws_api_gateway_rest_api.viewer_count_api.id
   resource_id             = aws_api_gateway_resource.send_cv_resource.id
-  http_method             = aws_api_gateway_method.send_cv_method.http_method 
+  http_method             = aws_api_gateway_method.send_cv_method.http_method
   type                    = "AWS_PROXY"
   integration_http_method = "POST"
   uri                     = aws_lambda_function.ses_lambda.invoke_arn
@@ -791,9 +791,9 @@ resource "aws_api_gateway_method_response" "viewer_count_cors_response" {
 }
 */
 
- # NOT NEEDED IF I HAVE OPTIONS HANDELED IN LAMBDA (SEEMS LIKE ACCORDING TO ADVANCED GPT WE STILL NEED IT BECAUSE WE STILL NEED TO OPEN A PATH FOR OPTIONS!!!!!! (EVEN THOUGH WERE SENDING THEM MANUALLY))
- # WE ALSO NEED TO INTEGRATE EACH METHOD WE DEFINE WITH THE API GATWAY IT'S NOT ENOUGH TO DECLARE IT LIKE WE'RE DOING HERE! 
- # METHOD RESPONSE AND INTEGRATION RESPONSE OBSOLETE WITH API GATEWAY BUT NOT DECLARING THE METHOD AND INTEGRATING IT! 
+# NOT NEEDED IF I HAVE OPTIONS HANDELED IN LAMBDA (SEEMS LIKE ACCORDING TO ADVANCED GPT WE STILL NEED IT BECAUSE WE STILL NEED TO OPEN A PATH FOR OPTIONS!!!!!! (EVEN THOUGH WERE SENDING THEM MANUALLY))
+# WE ALSO NEED TO INTEGRATE EACH METHOD WE DEFINE WITH THE API GATWAY IT'S NOT ENOUGH TO DECLARE IT LIKE WE'RE DOING HERE! 
+# METHOD RESPONSE AND INTEGRATION RESPONSE OBSOLETE WITH API GATEWAY BUT NOT DECLARING THE METHOD AND INTEGRATING IT! 
 
 resource "aws_api_gateway_method" "send_cv_options" {
   rest_api_id   = aws_api_gateway_rest_api.viewer_count_api.id
@@ -806,7 +806,7 @@ resource "aws_api_gateway_method" "send_cv_options" {
 resource "aws_api_gateway_integration" "send_cv_options_integration" {
   rest_api_id             = aws_api_gateway_rest_api.viewer_count_api.id
   resource_id             = aws_api_gateway_resource.send_cv_resource.id
-  http_method             = aws_api_gateway_method.send_cv_options.http_method 
+  http_method             = aws_api_gateway_method.send_cv_options.http_method
   type                    = "AWS_PROXY"
   integration_http_method = "POST"
   uri                     = aws_lambda_function.ses_lambda.invoke_arn
