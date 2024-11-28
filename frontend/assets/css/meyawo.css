@@ -12094,7 +12094,7 @@ h3 .counter-number {
   width: 100%;
   height: 100%;
   background-image: -webkit-linear-gradient(bottom, #fff 0%, rgba(105, 90, 166, 0.35) 99%, rgba(105, 90, 166, 0.5) 100%);
-  background-image: linear-gradient(to top, #fff 0%, rgba(105, 90, 166, 0.35) 99%, rgba(105, 90, 166, 0.5) 100%);
+  background-image: linear-gradient(to top, #fff 0%, rgba(105, 90, 166, 0.1) 99%, rgba(105, 90, 166, 0.15) 100%);
 }
 
 .header .header-content {

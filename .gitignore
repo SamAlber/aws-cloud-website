@@ -10,7 +10,9 @@ terraform/.terraform/
 .terraform.lock.hcl
 
 # Temporary or build artifacts
-/terraform/.zip
+terraform/SES_lambda.zip
+terraform/crypto_api.zip
+terraform/viewer_count.zip
 terraform/CV.pdf 
 
 # Sensitive variable files

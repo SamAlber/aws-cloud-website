@@ -91,6 +91,16 @@ resource "aws_dynamodb_table" "tfstate_locks" {
   }
 }
 
+/*3. How DynamoDB Uses the Hash Key
+The hash key determines:
+
+Partition Placement:
+DynamoDB uses the hash key value to calculate a hash.
+The hash determines which partition the item is stored in.
+Efficient Retrieval:
+Query operations on the table use the hash key to find the relevant partition and retrieve the item efficiently.
+*/
+
 # Identity-Based Policy - Grant permissions to identities to access various AWS services/resources.
 resource "aws_iam_policy" "tfstate_dynamodb_policy" {
   name        = "tfstate-dynamodb-policy"
@@ -102,7 +112,7 @@ resource "aws_iam_policy" "tfstate_dynamodb_policy" {
       {
         Effect   = "Allow",
         Action   = ["dynamodb:PutItem", "dynamodb:GetItem", "dynamodb:DeleteItem"],
-        Resource = "arn:aws:dynamodb:us-east-1:761018880324:table/tfstate-locks" # !!!!!!!!! Specifies on what the policy is applied to 
+        Resource = "arn:aws:dynamodb:us-east-1:761018880324:table/tfstate-locks" # !!!!!!!!! Specifies on what resource and iam admin the policy is applied to, coud've used aws_dynamodb_table.tfstate_locks.arn but full is better.
         /*
         If the iamadmin user is configured to assume the role, they will be able to:
 
