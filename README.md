@@ -1,6 +1,6 @@
 # AWS Resume Website
 
-![Architecture](https://github.com/SamAlber/aws-cloud-website/blob/283b6ba38074c5543b2523ca78dd6659aaf867de/frontend/assets/imgs/architecture.png)
+![Architecture](https://github.com/SamAlber/aws-cloud-website/blob/ba1398211d1b1543649f845ddd0f9fd3ccba2580/frontend/assets/imgs/architecture.png)
 
 ## **Table of Contents**
 
