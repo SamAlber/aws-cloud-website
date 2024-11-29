@@ -12083,7 +12083,7 @@ pre .code {
 }
 
 h3 .counter-number {
-  color: white; /* Ensure the full hex code (6 characters) is valid */
+  color: #F3E5AB; /* Ensure the full hex code (6 characters) is valid */
 }
 
 
@@ -12109,7 +12109,7 @@ h3 .counter-number {
 .header .header-content .header-title .up {
   font-size: calc(30px + (60 - 30) * ((100vw - 300px) / (1300 - 300)));
   font-weight: 500;
-  color: #450;
+  color: #F3E5AB;
   margin-bottom: 5px;
   position: relative;
   display: block;

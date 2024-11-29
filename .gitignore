@@ -1,5 +1,5 @@
 
-# Terraform state files
+# Terraform state files (Can delete them if the backend is in S3)
 terraform/terraform.tfstate  
 terraform/terraform.tfstate.backup
 
