@@ -12130,6 +12130,10 @@ h3 .counter-number {
   margin-bottom: 20px;
 }
 
+.header-subtitle {
+  color: white;
+}
+
 .header .header-content .btn {
   position: relative;
   margin-top: 20px;
