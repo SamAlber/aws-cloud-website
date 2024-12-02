@@ -12122,7 +12122,7 @@ h3 .counter-number {
   display: block;
 }
 
-.header .header-content .header-subtitle {
+.header .header-content .header-subtitle .header-api {
   font-size: calc(10px + (22 - 10) * ((100vw - 300px) / (1300 - 300)));
   letter-spacing: calc(1px + (7 - 1) * ((100vw - 300px) / (1300 - 300)));
   opacity: .8;
