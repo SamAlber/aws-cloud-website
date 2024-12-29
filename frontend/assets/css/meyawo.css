@@ -11267,6 +11267,10 @@ p {
   }
 }
 
+.portfolio-card {
+  margin-bottom: 30px; /* Add consistent spacing across all screen sizes */
+}
+
 /* Pricing card */
 .pricing-wrapper {
   display: -webkit-box;
