@@ -3,8 +3,9 @@ resource "aws_acm_certificate" "cert_for_cloudflare_dns" {
   validation_method = "DNS"
 
   subject_alternative_names = [
-    "samuelalber.com" # Add the second domain here
-  ]
+    "samuelalber.com"      # Explicitly cover the root domain
+    #"*.samuelalber.com"     # Cover all subdomains (created a separate certificate to avoid deletion of resources)
+]
 }
 
 resource "cloudflare_dns_record" "cdn_records" {
