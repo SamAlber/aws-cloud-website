@@ -24,3 +24,6 @@ terraform/CV-SamuelAlbershtein
 
 # Never commit terraform.tfstate or terraform.tfvars: These can contain secrets or sensitive information.
 # If you accidentally committed sensitive files (e.g., terraform.tfstate), remove them from your Git history using a tool like git filter-repo or git rm --cached.
+
+# Terraform main file
+terraform/main.tf
