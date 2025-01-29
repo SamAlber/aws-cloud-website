@@ -151,4 +151,105 @@ function validateEmail(email) {
 }
 
 
+// Cognito Part 
+// 1) Your Cognito Hosted UI details
+const COGNITO_DOMAIN = "YOUR_COGNITO_DOMAIN.auth.us-east-1.amazoncognito.com";
+const CLIENT_ID = "YOUR_USER_POOL_CLIENT_ID";
+const REDIRECT_URI = "https://www.yoursite.com"; 
+// Must match what's in your Cognito User Pool Client's callback_urls
+
+// 2) Scope + response type
+const SCOPES = "openid+email+profile";
+const RESPONSE_TYPE = "code";
+
+// 3) Public file URL (the direct S3 or CloudFront link)
+const PUBLIC_FILE_URL = "https://my-bucket.s3.amazonaws.com/MyCV.pdf";
+// or e.g. "https://d123abcdef.cloudfront.net/MyCV.pdf"
+
+// 4) Handle login-button click
+document.getElementById("login-button").onclick = () => {
+  const loginUrl = 
+    `https://${COGNITO_DOMAIN}/oauth2/authorize?` +
+    `client_id=${CLIENT_ID}&` +
+    `response_type=${RESPONSE_TYPE}&` +
+    `scope=${SCOPES}&` +
+    `redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
+  
+  window.location.href = loginUrl;
+};
+
+// 5) On page load, check if we have a ?code= from Cognito
+window.addEventListener("DOMContentLoaded", () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const code = urlParams.get("code");
+  
+  if (code) {
+    exchangeCodeForTokens(code);
+  }
+});
+
+// 6) Exchange authorization code for tokens
+async function exchangeCodeForTokens(authCode) {
+  const tokenUrl = `https://${COGNITO_DOMAIN}/oauth2/token`;
+
+  try {
+    const response = await fetch(tokenUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        code: authCode,
+        client_id: CLIENT_ID,
+        redirect_uri: REDIRECT_URI
+      })
+    });
+    
+    const tokens = await response.json();
+    if (tokens.id_token) {
+      // Parse the ID token to get user info
+      const payload = parseJwt(tokens.id_token);
+
+      // Greet by name (or email)
+      const userName = payload.name || payload.email || "User";
+      document.getElementById("user-name").textContent = userName;
+
+      // Show the authenticated section, hide login button
+      document.getElementById("authenticated-section").style.display = "block";
+      document.getElementById("login-button").style.display = "none";
+    }
+  } catch (error) {
+    console.error("Token exchange error:", error);
+  }
+}
+
+// 7) Utility to parse JWT token (ID token)
+function parseJwt(token) {
+  const base64Url = token.split(".")[1];
+  const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+  const jsonPayload = decodeURIComponent(
+    atob(base64)
+      .split("")
+      .map(c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+      .join("")
+  );
+  return JSON.parse(jsonPayload);
+}
+
+// 8) Download CV button
+document.getElementById("download-cv-btn").onclick = () => {
+  // Because the file is public, we can just direct the user to it
+  // For an immediate download, either:
+  
+  // Option A: Simple redirect (will open in browser or prompt for download)
+  //window.location.href = PUBLIC_FILE_URL;
+  
+  // Option B: Use an <a download> trick to force "save as"
+  const anchor = document.createElement("a");
+  anchor.href = PUBLIC_FILE_URL;
+  anchor.download = "MyCV.pdf"; // set desired filename
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+};
+
 

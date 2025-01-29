@@ -85,10 +85,10 @@
                     <h3 class="section-title mt-4">Get My CV</h3>
                     <div class="cv-request-container">
                         <button 
-                        class="btn-rounded btn btn-outline-primary" 
-                        onclick="sendEmailRequest()">
-                        Receive my CV
-                    </button>
+                            class="btn-rounded btn btn-outline-primary" 
+                            onclick="sendEmailRequest()">
+                            Receive my CV
+                        </button>
                         <input 
                             type="email" 
                             id="email-input" 
@@ -97,6 +97,24 @@
                             style="max-width: 300px;"
                         >
                     </div>
+
+                    <!-- Authenticated section (hidden by default) -->
+                    <div id="authenticated-section" style="margin-top: 20px; display: none;">
+                        <h3>Hello, <span id="user-name"></span>!</h3>
+                        <button id="download-cv-btn" class="btn btn-primary">Download My CV</button>
+                    </div>
+                    
+                    <!-- A little text to invite the user to try the Cognito login -->
+                    <p style="margin-top: 20px;">
+                        Want a personalized download experience? 
+                        <strong>Try OpenID Connect With AWS Cognito</strong>
+                    </p>
+                    
+                    <!-- New, cooler login button using the same styling -->
+                    <button id="login-button" class="btn-rounded btn btn-outline-primary" style="margin-top: 10px;">
+                        Login to Download (TEST)
+                    </button>
+
                     <div id="email-status" style="margin-top: 20px; color: red;"></div>
                 </div>                
             </div><!-- end of about wrapper -->
@@ -117,8 +135,6 @@
             max-width: 300px; /* Keep the input field compact */
         }
     </style>
-
-
 
     <!-- Crypto Bar -->
     <section class="section pt-0" id="about">
