@@ -181,11 +181,19 @@ document.addEventListener("DOMContentLoaded", () => {
         };
     }
 
-    // Handle Download Button Click
-    const downloadButton = document.getElementById("download-cv-btn");
-    if (downloadButton) {
-        downloadButton.onclick = () => {
+    // Handle Download Button Click (inside popup)
+    const popupDownloadButton = document.getElementById("popup-download-cv-btn");
+    if (popupDownloadButton) {
+        popupDownloadButton.onclick = () => {
             window.location.href = CV_FILE_URL;
+        };
+    }
+
+    // Handle Popup Close Button
+    const closePopupButton = document.getElementById("close-popup");
+    if (closePopupButton) {
+        closePopupButton.onclick = () => {
+            document.getElementById("success-popup").style.display = "none";
         };
     }
 });
@@ -213,16 +221,19 @@ async function exchangeCodeForTokens(code) {
         const tokens = await response.json();
         const payload = parseJwt(tokens.id_token);
 
-        // name extract from JWT
-        const userName = payload.name 
+        // Extract user name
+        const userName = payload.name || "User";
 
-        document.getElementById("user-name").textContent = userName;
-        document.getElementById("authenticated-section").style.display = "block";
+        // Show popup and update user name
+        document.getElementById("popup-user-name").textContent = userName;
+        document.getElementById("success-popup").style.display = "block";
 
+        // Hide login section
         const loginSection = document.getElementById("login-section");
         if (loginSection) {
             loginSection.style.display = "none";
         }
+
     } catch (error) {
         alert("Error during authentication. Please try again.");
         console.error("Token exchange error:", error);
