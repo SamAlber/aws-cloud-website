@@ -150,8 +150,6 @@ function validateEmail(email) {
     return regex.test(email);
 }
 
-
-// Cognito Part 
 /************************************************************************
  * ✅ Cognito Configuration
  ************************************************************************/
@@ -168,14 +166,10 @@ const CV_FILE_URL = "https://public-cv-bra2hd.s3.us-east-1.amazonaws.com/CV-Samu
  * ✅ Wait for Page to Load Before Running Code
  ************************************************************************/
 document.addEventListener("DOMContentLoaded", () => {
-    console.log("✅ Page Loaded");
-
-    // Check if Cognito redirected back with an auth code
     const params = new URLSearchParams(window.location.search);
     const authCode = params.get("code");
 
     if (authCode) {
-        console.log("🔹 Auth code detected:", authCode);
         exchangeCodeForTokens(authCode);
     }
 
@@ -183,8 +177,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const loginButton = document.getElementById("login-button");
     if (loginButton) {
         loginButton.onclick = () => {
-            console.log("🔹 Redirecting to Cognito Login...");
-            window.location.href = `https://${COGNITO_DOMAIN}/login/continue?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=email+openid`;
+            window.location.href = `https://${COGNITO_DOMAIN}/login/continue?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=email+openid+profile`;
         };
     }
 
@@ -192,7 +185,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const downloadButton = document.getElementById("download-cv-btn");
     if (downloadButton) {
         downloadButton.onclick = () => {
-            console.log("📂 Downloading CV...");
             window.location.href = CV_FILE_URL;
         };
     }
@@ -202,8 +194,6 @@ document.addEventListener("DOMContentLoaded", () => {
  * ✅ Exchange Authorization Code for ID Token
  ************************************************************************/
 async function exchangeCodeForTokens(code) {
-    console.log("🔄 Exchanging auth code for tokens...");
-
     try {
         const response = await fetch(`https://${COGNITO_DOMAIN}/oauth2/token`, {
             method: "POST",
@@ -217,25 +207,25 @@ async function exchangeCodeForTokens(code) {
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+            throw new Error(`HTTP ${response.status}`);
         }
 
         const tokens = await response.json();
-        console.log("✅ Token Response:", tokens);
-
-        // Extract user info from the ID token
         const payload = parseJwt(tokens.id_token);
-        console.log("📌 Decoded Token Payload:", payload);
 
-        const userName = payload.name || payload.email || "User";
+        // Prioritize `name`, fallback to email prefix or "User"
+        const userName = payload.name || payload.email.split('@')[0] || "User";
 
-        // Show the authenticated section and update greeting
         document.getElementById("user-name").textContent = userName;
         document.getElementById("authenticated-section").style.display = "block";
 
+        const loginSection = document.getElementById("login-section");
+        if (loginSection) {
+            loginSection.style.display = "none";
+        }
     } catch (error) {
-        console.error("❌ Token exchange error:", error);
-        alert("Error exchanging authentication token. Check console for details.");
+        alert("Error during authentication. Please try again.");
+        console.error("Token exchange error:", error);
     }
 }
 
@@ -247,7 +237,3 @@ function parseJwt(token) {
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
     return JSON.parse(atob(base64));
 }
-
-
-
-

@@ -98,22 +98,25 @@
                         >
                     </div>
 
-                    <!-- Authenticated section (hidden by default) -->
+                    <!-- Authenticated Section (hidden by default) -->
                     <div id="authenticated-section" style="margin-top: 20px; display: none;">
-                        <h3>Hello, <span id="user-name"></span>!</h3>
-                        <button id="download-cv-btn" class="btn btn-primary">Download My CV</button>
+                        <h3>Hello, <span id="user-name" class="highlight"></span>!</h3>
+                        <button id="download-cv-btn" class="btn btn-primary btn-lg">Download My CV</button>
                     </div>
 
-                    <!-- A little text to invite the user to try the Cognito login -->
-                    <p style="margin-top: 20px;">
-                        Want a personalized download experience? 
-                        <strong>Try OpenID Connect With AWS Cognito</strong>
-                    </p>
+                    <!-- Login Section (visible before authentication) -->
+                    <div id="login-section" style="margin-top: 20px;">
+                        <!-- Invite Text -->
+                        <p class="invite-text">
+                            Want a personalized download experience? 
+                            <strong>Try OpenID Connect With AWS Cognito</strong>
+                        </p>
 
-                    <!-- Login Button -->
-                    <button id="login-button" class="btn-rounded btn btn-outline-primary" style="margin-top: 10px;">
-                        Login to Download (TEST)
-                    </button>
+                        <!-- Login Button -->
+                        <button id="login-button" class="btn btn-outline-primary btn-lg">
+                            Login to Download My CV
+                        </button>
+                    </div>
 
                     <div id="email-status" style="margin-top: 20px; color: red;"></div>
                 </div>                
