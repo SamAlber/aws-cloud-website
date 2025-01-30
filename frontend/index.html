@@ -103,17 +103,19 @@
                         <h3>Hello, <span id="user-name"></span>!</h3>
                         <button id="download-cv-btn" class="btn btn-primary">Download My CV</button>
                     </div>
-                    
+
                     <!-- A little text to invite the user to try the Cognito login -->
                     <p style="margin-top: 20px;">
                         Want a personalized download experience? 
                         <strong>Try OpenID Connect With AWS Cognito</strong>
                     </p>
-                    
-                    <!-- New, cooler login button using the same styling -->
-                    <button id="login-button" class="btn-rounded btn btn-outline-primary" style="margin-top: 10px;">
-                        Login to Download (TEST)
-                    </button>
+
+                    <!-- New, cooler login button using an <a> tag (BEST PRACTICE) -->
+                    <a href="https://us-east-1vtzspvjtr.auth.us-east-1.amazoncognito.com/login?client_id=4667m5rgdiql8qs0kv8aseesvd&response_type=code&scope=email+openid&redirect_uri=https%3A%2F%2Fsamuelalber.com"
+                    class="btn-rounded btn btn-outline-primary"
+                    style="margin-top: 10px;">
+                    Login to Download (TEST)
+                    </a>
 
                     <div id="email-status" style="margin-top: 20px; color: red;"></div>
                 </div>                
