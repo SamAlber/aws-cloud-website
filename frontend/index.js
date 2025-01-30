@@ -1,36 +1,30 @@
-const counter = document.querySelector(".counter-number"); // This line selects the first HTML element with the class counter-number and assigns it to the counter variable. 
-// a method in JavaScript used to select the first element in the DOM (Document Object Model) that matches a specified CSS selector. It allows you to interact with or manipulate HTML elements directly.
-// selector: A string representing a CSS selector (e.g., .class, #id, or a tag like div). 
-async function updateCounter() { // The updateCounter function is marked as async, meaning it can use await inside it to handle asynchronous operations.
-    let response = await fetch("https://zyst4gczkf.execute-api.us-east-1.amazonaws.com/prod/viewer-count") // Fetch the JSON data from the API.
-    let data = await response.json(); // Parse the JSON response. 
-    counter.innerHTML = `Views: ${data.view_count}`; //replaces the value of the counter number class with the new data number received from lambda.
-    // counter.innerHTML is a property of an HTML element that represents the content inside that element, including any HTML tags. 
+/************************************************************************
+ * ✅ Update Counter (Viewer Count)
+ ************************************************************************/
+const counter = document.querySelector(".counter-number"); // Select the element displaying the viewer count.
+
+// Function to fetch and update the viewer count from the API.
+async function updateCounter() {
+    try {
+        let response = await fetch("https://zyst4gczkf.execute-api.us-east-1.amazonaws.com/prod/viewer-count");
+        let data = await response.json();
+        counter.innerHTML = `Views: ${data.view_count}`; // Update the counter with the new view count.
+    } catch (error) {
+        console.error("Error fetching viewer count:", error);
+    }
 }
 
+// Call the function on page load.
 updateCounter();
 
-
-// counter.innerHTML explanation
-
-//<div class="counter-number">Old Content</div>
-//<script>
-//    const counter = document.querySelector(".counter-number");
-//    counter.innerHTML = "New Content";
-//    console.log(counter.innerHTML); // Outputs: "New Content"
-//</script>
-
-// document.querySelector(".counter-number") selects the <div> with the class counter-number. 
-// counter.innerHTML = "New Content" replaces the existing content ("Old Content") with "New Content". 
-
-
-// CRYPTO BAR
-
+/************************************************************************
+ * ✅ Fetch and Display Cryptocurrency Prices
+ ************************************************************************/
 async function fetchCryptoPrices() {
-    const apiEndpoint = "https://zyst4gczkf.execute-api.us-east-1.amazonaws.com/prod/crypto_api"; // Replace with your API Gateway URL
-    const symbols = "BTC,ETH,BNB,LTC,DOGE,NEO,ADA,SOL,XRP,TRX"; // Add more symbols if needed
+    const apiEndpoint = "https://zyst4gczkf.execute-api.us-east-1.amazonaws.com/prod/crypto_api";
+    const symbols = "BTC,ETH,BNB,LTC,DOGE,NEO,ADA,SOL,XRP,TRX"; // Supported cryptocurrencies.
 
-    // Mapping cryptocurrency symbols to their logo URLs
+    // Mapping cryptocurrency symbols to their respective logo URLs.
     const cryptoLogos = {
         BTC: "https://cryptologos.cc/logos/bitcoin-btc-logo.png",
         ETH: "https://cryptologos.cc/logos/ethereum-eth-logo.png",
@@ -47,39 +41,33 @@ async function fetchCryptoPrices() {
     try {
         const response = await fetch(`${apiEndpoint}?symbols=${symbols}`);
         const data = await response.json();
-
+        
         if (data.prices) {
             const cryptoBar = document.getElementById("crypto-bar");
-            cryptoBar.innerHTML = ""; // Clear existing content
-
-            // Populate the bar with cryptocurrencies
+            cryptoBar.innerHTML = ""; // Clear existing content.
+            
+            // Populate the crypto bar with price data.
             for (const [symbol, price] of Object.entries(data.prices)) {
                 const item = document.createElement("div");
                 item.className = "crypto-item";
 
-                // Add a logo for each coin
                 const icon = document.createElement("img");
-                icon.src = cryptoLogos[symbol] || "https://via.placeholder.com/40"; // Use placeholder if logo is missing
+                icon.src = cryptoLogos[symbol] || "https://via.placeholder.com/40";
                 icon.alt = `${symbol} logo`;
                 icon.style.width = "40px";
                 icon.style.height = "40px";
 
-                // Add the coin name
                 const name = document.createElement("div");
                 name.className = "crypto-name";
                 name.textContent = symbol;
 
-                // Add the price
                 const priceElement = document.createElement("div");
                 priceElement.className = "crypto-price";
                 priceElement.textContent = `$${price.toFixed(2)}`;
 
-                // Append elements to the item
                 item.appendChild(icon);
                 item.appendChild(name);
                 item.appendChild(priceElement);
-
-                // Append item to the crypto bar
                 cryptoBar.appendChild(item);
             }
         } else {
@@ -90,94 +78,76 @@ async function fetchCryptoPrices() {
     }
 }
 
-// Fetch the prices once when the page loads
+// Fetch the cryptocurrency prices on page load.
 fetchCryptoPrices();
 
-
-// Sending email form 
-
+/************************************************************************
+ * ✅ Email Sending Functionality
+ ************************************************************************/
 async function sendEmailRequest() {
     const emailInput = document.getElementById("email-input");
-    const email = emailInput.value.trim(); // Get the email input and trim whitespace
+    const email = emailInput.value.trim();
     const statusDiv = document.getElementById("email-status");
-
-    // Clear previous status messages
-    statusDiv.textContent = "";
-
-    // Validate email input
+    
+    statusDiv.textContent = ""; // Clear previous messages.
+    
     if (!validateEmail(email)) {
         statusDiv.textContent = "Please enter a valid email address.";
         statusDiv.style.color = "red";
         return;
     }
-
-    const apiEndpoint = "https://zyst4gczkf.execute-api.us-east-1.amazonaws.com/prod/send-cv"; // Your API Gateway endpoint
-
+    
+    const apiEndpoint = "https://zyst4gczkf.execute-api.us-east-1.amazonaws.com/prod/send-cv";
+    
     try {
-        // Show loading indicator
         statusDiv.textContent = "Sending request...";
         statusDiv.style.color = "blue";
-
-        // Make POST request to the API Gateway
+        
         const response = await fetch(apiEndpoint, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ email }), // Pass email in the body
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
         });
-
+        
         const result = await response.json();
-
-        if (response.ok) {
-            statusDiv.textContent = "CV link sent successfully! Check your email.";
-            statusDiv.style.color = "green";
-        } else {
-            // Show error message from backend
-            statusDiv.textContent = result.error || "Failed to send CV. Please try again.";
-            statusDiv.style.color = "red";
-        }
+        
+        statusDiv.textContent = response.ok ? "CV link sent successfully! Check your email." : (result.error || "Failed to send CV. Please try again.");
+        statusDiv.style.color = response.ok ? "green" : "red";
     } catch (error) {
         console.error("Error sending email:", error);
-        statusDiv.textContent = "An error occurred while sending the email. Please try again.";
+        statusDiv.textContent = "An error occurred. Please try again.";
         statusDiv.style.color = "red";
     }
 }
 
-// Email validation function
+// Function to validate email format.
 function validateEmail(email) {
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Simple email regex
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return regex.test(email);
 }
 
 /************************************************************************
- * ✅ Cognito Configuration
+ * ✅ Cognito Authentication and Redirect Handling
  ************************************************************************/
 const COGNITO_DOMAIN = "us-east-1vtzspvjtr.auth.us-east-1.amazoncognito.com";
 const CLIENT_ID = "4667m5rgdiql8qs0kv8aseesvd";
 const REDIRECT_URI = "https://samuelalber.com";
 
-/************************************************************************
- * ✅ CV Download Link
- ************************************************************************/
-const CV_FILE_URL = "https://public-cv-bra2hd.s3.us-east-1.amazonaws.com/CV-SamuelAlbershtein.pdf";
-
-/************************************************************************
- * ✅ Wait for Page to Load Before Running Code
- ************************************************************************/
+// Handle authentication and remove "code" from URL.
 document.addEventListener("DOMContentLoaded", () => {
     const params = new URLSearchParams(window.location.search);
     const authCode = params.get("code");
 
     if (authCode) {
         exchangeCodeForTokens(authCode);
+        window.history.replaceState({}, document.title, window.location.pathname); // Remove "code" from the URL.
     }
 
     // Handle Login Button Click
     const loginButton = document.getElementById("login-button");
     if (loginButton) {
         loginButton.onclick = () => {
-            window.location.href = `https://${COGNITO_DOMAIN}/login/continue?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=email+openid+profile`;
+            window.location.href = `https://${COGNITO_DOMAIN}/login?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=email+openid+profile`;
         };
     }
 
@@ -185,7 +155,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const popupDownloadButton = document.getElementById("popup-download-cv-btn");
     if (popupDownloadButton) {
         popupDownloadButton.onclick = () => {
-            window.location.href = CV_FILE_URL;
+            window.location.href = "https://public-cv-bra2hd.s3.us-east-1.amazonaws.com/CV-SamuelAlbershtein.pdf";
         };
     }
 
@@ -198,9 +168,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
-/************************************************************************
- * ✅ Exchange Authorization Code for ID Token
- ************************************************************************/
+// Function to exchange authorization code for tokens.
 async function exchangeCodeForTokens(code) {
     try {
         const response = await fetch(`https://${COGNITO_DOMAIN}/oauth2/token`, {
@@ -220,29 +188,14 @@ async function exchangeCodeForTokens(code) {
 
         const tokens = await response.json();
         const payload = parseJwt(tokens.id_token);
-
-        // Extract user name
-        const userName = payload.name || "User";
-
-        // Show popup and update user name
-        document.getElementById("popup-user-name").textContent = userName;
+        document.getElementById("popup-user-name").textContent = payload.name || "User";
         document.getElementById("success-popup").style.display = "block";
-
-        // Hide login section
-        const loginSection = document.getElementById("login-section");
-        if (loginSection) {
-            loginSection.style.display = "none";
-        }
-
     } catch (error) {
-        alert("Error during authentication. Please try again.");
         console.error("Token exchange error:", error);
     }
 }
 
-/************************************************************************
- * ✅ Parse JWT to Extract User Info
- ************************************************************************/
+// Function to parse JWT token.
 function parseJwt(token) {
     const base64Url = token.split(".")[1];
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
