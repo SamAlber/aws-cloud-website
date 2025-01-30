@@ -213,8 +213,8 @@ async function exchangeCodeForTokens(code) {
         const tokens = await response.json();
         const payload = parseJwt(tokens.id_token);
 
-        // Prioritize `name`, fallback to email prefix or "User"
-        const userName = payload.name || payload.email.split('@')[0] || "User";
+        // name extract from JWT
+        const userName = payload.name 
 
         document.getElementById("user-name").textContent = userName;
         document.getElementById("authenticated-section").style.display = "block";
