@@ -170,20 +170,25 @@ const CV_FILE_URL = "https://public-cv-bra2hd.s3.us-east-1.amazonaws.com/CV-Samu
 document.addEventListener("DOMContentLoaded", () => {
     console.log("✅ Page Loaded");
 
-    /************************************************************************
-     * ✅ 1️⃣ Check If Cognito Redirected with an Auth Code
-     ************************************************************************/
+    // Check if Cognito redirected back with an auth code
     const params = new URLSearchParams(window.location.search);
     const authCode = params.get("code");
 
     if (authCode) {
-        console.log("✅ Auth code detected:", authCode);
+        console.log("🔹 Auth code detected:", authCode);
         exchangeCodeForTokens(authCode);
     }
 
-    /************************************************************************
-     * ✅ 2️⃣ Handle "Download My CV" Button Click
-     ************************************************************************/
+    // Handle Login Button Click
+    const loginButton = document.getElementById("login-button");
+    if (loginButton) {
+        loginButton.onclick = () => {
+            console.log("🔹 Redirecting to Cognito Login...");
+            window.location.href = `https://${COGNITO_DOMAIN}/login/continue?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=email+openid`;
+        };
+    }
+
+    // Handle Download Button Click
     const downloadButton = document.getElementById("download-cv-btn");
     if (downloadButton) {
         downloadButton.onclick = () => {
@@ -194,10 +199,10 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /************************************************************************
- * ✅ 3️⃣ Exchange Authorization Code for ID Token
+ * ✅ Exchange Authorization Code for ID Token
  ************************************************************************/
 async function exchangeCodeForTokens(code) {
-    console.log("🔄 Exchanging code for tokens...");
+    console.log("🔄 Exchanging auth code for tokens...");
 
     try {
         const response = await fetch(`https://${COGNITO_DOMAIN}/oauth2/token`, {
@@ -212,32 +217,37 @@ async function exchangeCodeForTokens(code) {
         });
 
         if (!response.ok) {
-            throw new Error("Token exchange failed");
+            throw new Error(`HTTP ${response.status}: ${await response.text()}`);
         }
 
         const tokens = await response.json();
         console.log("✅ Token Response:", tokens);
 
-        // ✅ Extract user details from the ID Token
+        // Extract user info from the ID token
         const payload = parseJwt(tokens.id_token);
+        console.log("📌 Decoded Token Payload:", payload);
+
         const userName = payload.name || payload.email || "User";
 
-        // ✅ Show the authenticated section and update greeting
+        // Show the authenticated section and update greeting
         document.getElementById("user-name").textContent = userName;
         document.getElementById("authenticated-section").style.display = "block";
 
     } catch (error) {
-        console.error("❌ Error exchanging code for tokens:", error);
+        console.error("❌ Token exchange error:", error);
+        alert("Error exchanging authentication token. Check console for details.");
     }
 }
 
 /************************************************************************
- * ✅ 4️⃣ Parse JWT to Extract User Info
+ * ✅ Parse JWT to Extract User Info
  ************************************************************************/
 function parseJwt(token) {
     const base64Url = token.split(".")[1];
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
     return JSON.parse(atob(base64));
 }
+
+
 
 
