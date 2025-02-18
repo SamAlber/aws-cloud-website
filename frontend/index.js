@@ -217,12 +217,12 @@ async function getAWSCredentials(idToken) {
     const cognitoIdentity = new AWS.CognitoIdentity();
     const identityData = await cognitoIdentity.getId({
         IdentityPoolId: IDENTITY_POOL_ID,
-        Logins: { "accounts.google.com": idToken }
+        Logins: { "cognito-idp.us-east-1.amazonaws.com/us-east-1_VTzspvJTr": idToken }
     }).promise();
     const identityId = identityData.IdentityId;
     const credentialsData = await cognitoIdentity.getCredentialsForIdentity({
         IdentityId: identityId,
-        Logins: { "accounts.google.com": idToken }
+        Logins: { "cognito-idp.us-east-1.amazonaws.com/us-east-1_VTzspvJTr": idToken }
     }).promise();
     AWS.config.credentials = new AWS.Credentials(
         credentialsData.Credentials.AccessKeyId,
