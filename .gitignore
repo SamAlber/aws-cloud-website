@@ -26,4 +26,4 @@ terraform/CV-SamuelAlbershtein
 # If you accidentally committed sensitive files (e.g., terraform.tfstate), remove them from your Git history using a tool like git filter-repo or git rm --cached.
 
 # Terraform main file
-terraform/main.tf
+# terraform/main.tf

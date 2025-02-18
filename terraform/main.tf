@@ -296,26 +296,8 @@ resource "aws_s3_bucket_public_access_block" "public_cv_access" {
   restrict_public_buckets = true
 }
 
-# Bucket Policy to Allow Public Read on a Specific File
-resource "aws_s3_bucket_policy" "public_cv_policy" {
-  bucket = aws_s3_bucket.public_cv_bucket.id
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect    = "Deny",
-        Principal = "*",
-        Action    = "s3:GetObject",
-        Resource  = "arn:aws:s3:::${aws_s3_bucket.public_cv_bucket.id}/CV-SamuelAlbershtein.pdf",
-        Condition = {
-          "StringNotEquals": {
-            "aws:PrincipalArn": "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/CognitoAccessRole"
-          }
-        }
-      }
-    ]
-  })
-}
+# We don't need any S3 bucket policy because the Cognito role will take care of the access through the identity pool with the user.
+# We configured a special 
 
 # ------------------------- Verify SES Email Identity ------------------------- #
 

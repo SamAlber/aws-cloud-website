@@ -133,7 +133,6 @@ const COGNITO_DOMAIN = "us-east-1vtzspvjtr.auth.us-east-1.amazoncognito.com";
 const CLIENT_ID = "4667m5rgdiql8qs0kv8aseesvd";
 const REDIRECT_URI = "https://samuelalber.com";
 
-// Handle authentication and remove "code" from URL.
 document.addEventListener("DOMContentLoaded", () => {
     const params = new URLSearchParams(window.location.search);
     const authCode = params.get("code");
@@ -151,12 +150,10 @@ document.addEventListener("DOMContentLoaded", () => {
         };
     }
 
-    // Handle Download Button Click (inside popup)
+    // Handle Download Button Click (inside popup) using signed URL.
     const popupDownloadButton = document.getElementById("popup-download-cv-btn");
     if (popupDownloadButton) {
-        popupDownloadButton.onclick = () => {
-            window.location.href = "https://public-cv-bra2hd.s3.us-east-1.amazonaws.com/CV-SamuelAlbershtein.pdf";
-        };
+        popupDownloadButton.onclick = downloadCV;
     }
 
     // Handle Popup Close Button
@@ -187,6 +184,9 @@ async function exchangeCodeForTokens(code) {
         }
 
         const tokens = await response.json();
+        // Store the id_token for later use (e.g., for generating a signed URL)
+        localStorage.setItem("id_token", tokens.id_token);
+
         const payload = parseJwt(tokens.id_token);
         document.getElementById("popup-user-name").textContent = payload.name || "User";
         document.getElementById("success-popup").style.display = "block";
@@ -200,4 +200,67 @@ function parseJwt(token) {
     const base64Url = token.split(".")[1];
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
     return JSON.parse(atob(base64));
+}
+
+/************************************************************************
+ * ✅ Signed URL Generation for Private S3 Access
+ ************************************************************************/
+// Configuration constants for S3 and Cognito Identity Pool.
+const S3_BUCKET = "public-cv-bra2hd";
+const FILE_KEY = "CV-SamuelAlbershtein.pdf";
+const IDENTITY_POOL_ID = "us-east-1:03801703-894b-4e40-a6e6-a2f3862171b7"; // Replace with your actual Identity Pool ID.
+const REGION = "us-east-1";
+
+// Function to obtain AWS credentials via Cognito Identity Pool.
+async function getAWSCredentials(idToken) {
+    AWS.config.region = REGION;
+    const cognitoIdentity = new AWS.CognitoIdentity();
+    const identityData = await cognitoIdentity.getId({
+        IdentityPoolId: IDENTITY_POOL_ID,
+        Logins: { "accounts.google.com": idToken }
+    }).promise();
+    const identityId = identityData.IdentityId;
+    const credentialsData = await cognitoIdentity.getCredentialsForIdentity({
+        IdentityId: identityId,
+        Logins: { "accounts.google.com": idToken }
+    }).promise();
+    AWS.config.credentials = new AWS.Credentials(
+        credentialsData.Credentials.AccessKeyId,
+        credentialsData.Credentials.SecretKey,
+        credentialsData.Credentials.SessionToken
+    );
+    return AWS.config.credentials;
+}
+
+// Function to generate a signed S3 URL.
+async function getSignedS3Url(idToken) {
+    try {
+        const credentials = await getAWSCredentials(idToken);
+        const s3 = new AWS.S3({ credentials });
+        const url = s3.getSignedUrl("getObject", {
+            Bucket: S3_BUCKET,
+            Key: FILE_KEY,
+            Expires: 60  // URL expires in 60 seconds.
+        });
+        return url;
+    } catch (error) {
+        console.error("Error getting signed URL:", error);
+        return null;
+    }
+}
+
+// Function to download the CV using the signed URL.
+async function downloadCV() {
+    const idToken = localStorage.getItem("id_token");
+    if (!idToken) {
+        console.error("User is not authenticated.");
+        return;
+    }
+
+    const signedUrl = await getSignedS3Url(idToken);
+    if (signedUrl) {
+        window.location.href = signedUrl; // Redirect the user to the signed URL to download the file.
+    } else {
+        alert("Failed to retrieve CV. Please try again.");
+    }
 }
