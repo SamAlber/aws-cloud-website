@@ -1,6 +1,7 @@
 # AWS Resume Website
 
 ![Architecture](https://github.com/SamAlber/aws-cloud-website/blob/ba1398211d1b1543649f845ddd0f9fd3ccba2580/frontend/assets/imgs/architecture.png)
+![AuthenticationFlow](https://github.com/SamAlber/aws-cloud-website/blob/71bd33a13d8ec89d786a4cad20f2984da56fda9a/frontend/assets/imgs/Cognito.png)
 
 ## **Table of Contents**
 
