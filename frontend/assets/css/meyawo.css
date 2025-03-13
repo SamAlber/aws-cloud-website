@@ -11208,8 +11208,10 @@ p {
   overflow: hidden;
 }
 
-.portfolio-card .portfolio-card-img {
-  width: 100%;
+.portfolio-card-img {
+  width: 100%; /* Ensures responsiveness */
+  height: 200px; /* Adjust height as needed */
+  object-fit: contain; /* Ensures uniform image scaling */
 }
 
 .portfolio-card .portfolio-card-overlay {
