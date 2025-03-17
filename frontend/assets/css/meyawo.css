@@ -2781,10 +2781,10 @@ fieldset:disabled a.btn {
   background-color: #450;
   border-color: yellow;
   font-size: 16px; /* Adjusts the text size */
-  width: 130px; /* Sets a fixed width (optional)  if not using padding */
+  width: 68px; /* Sets a fixed width (optional)  if not using padding */
   height: 35px; /* Sets a fixed height (optional), if not using padding */ 
   font-family: 'Baloo Paaji', cursive;
-  
+  gap: 10px; /* Space between the buttons */
 
   display: flex;
   align-items: center; /* Centers vertically */
